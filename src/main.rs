@@ -1,3 +1,5 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
+
 mod simulator;
 
 use eframe::{egui::{self}, emath::Vec2, Frame};
