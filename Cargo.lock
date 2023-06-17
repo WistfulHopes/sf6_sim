@@ -2103,6 +2103,9 @@ dependencies = [
  "bitflags 2.3.2",
  "bitvec",
  "eframe",
+ "num",
+ "num-derive",
+ "num-traits",
  "rfd",
  "sf6_rsz_parser",
 ]
