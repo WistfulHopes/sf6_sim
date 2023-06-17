@@ -172,7 +172,7 @@ impl Viewer {
                             cancel_flags.push_str("Guard | ")
                         }
                         if trigger.condition_flag & 0b100 > 0 {
-                            cancel_flags.push_str("Swing | ")
+                            cancel_flags.push_str("Whiff | ")
                         }
                         if trigger.condition_flag & 0b010000000000 > 0 {
                             cancel_flags.push_str("Counter | ")
