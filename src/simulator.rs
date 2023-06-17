@@ -1,5 +1,6 @@
 ﻿use std::fs::File;
 use std::io::Read;
+use num_derive::FromPrimitive;
 use std::path::PathBuf;
 use bitvec::order::Lsb0;
 use bitvec::view::BitView;
@@ -11,6 +12,39 @@ use sf6_rsz_parser::fchar::{CharacterAsset, DataId};
 use sf6_rsz_parser::parse_fchar;
 use sf6_rsz_parser::rsz::json_parser::parse_json;
 use sf6_rsz_parser::rsz::RSZValue;
+
+#[derive(Default, FromPrimitive, PartialEq, Eq, Clone)]
+enum SteerOperationType {
+    #[default]
+    Nop = 0,
+    Set = 1,
+    Add = 2,
+    Multiply = 3,
+    SetSign = 4,
+    AddSign = 5,
+    SetNegativeX = 6,
+    SetNegativeY = 7,
+    SetNegativeZ = 8,
+    SetMinimum = 9,
+    SetMaximum = 10,
+    SetIgnore = 11,
+    SetInherit = 12,
+    SetTarget = 13,
+    SetHomingValue = 14,
+    SetHomingTime = 15,
+    SetInheritXYZ = 16,
+}
+
+#[derive(Default, FromPrimitive, PartialEq, Eq, Clone)]
+enum SteerValueType {
+    #[default]
+    VelocityX = 0,
+    VelocityY = 1,
+    VelocityZ = 2,
+    AccelerationX = 3,
+    AccelerationY = 4,
+    AccelerationZ = 5,
+}
 
 #[derive(Default, Clone)]
 struct CollisionBox {
@@ -55,6 +89,13 @@ struct Trigger {
     condition_flag: u32,
 }
 
+#[derive(Default)]
+struct Vector3f {
+    x: f32,
+    y: f32,
+    z: f32,
+}
+
 pub struct Viewer {
     pub asset: Option<CharacterAsset>,
     selected_index: i32,
@@ -64,6 +105,12 @@ pub struct Viewer {
     damage_collision_keys: Vec<DamageCollisionKey>,
     attack_collision_keys: Vec<AttackCollisionKey>,
     triggers: Vec<Trigger>,
+    position: Vector3f,
+    velocity: Vector3f,
+    acceleration: Vector3f,
+    prev_position: Vector3f,
+    prev_velocity: Vector3f,
+    prev_acceleration: Vector3f,
     offset_x: f32,
     offset_y: f32,
     last_cursor_pos: Pos2,
@@ -81,12 +128,77 @@ impl Default for Viewer {
             damage_collision_keys: vec![],
             attack_collision_keys: vec![],
             triggers: vec![],
+            position: Default::default(),
+            velocity: Default::default(),
+            acceleration: Default::default(),
+            prev_position: Default::default(),
+            prev_velocity: Default::default(),
+            prev_acceleration: Default::default(),
             offset_x: 640.0,
             offset_y: 360.0,
             last_cursor_pos: Default::default(),
             should_update: false,
         }
     }
+}
+fn steer_key_to_value(op_type: SteerOperationType, in_value: f32, prev_value: f32, modify_value: f32) -> f32
+{
+    let mut value = in_value;
+    match op_type {
+        SteerOperationType::Nop => {}
+        SteerOperationType::Set => value = modify_value,
+        SteerOperationType::Add => value += modify_value,
+        SteerOperationType::Multiply => value *= modify_value,
+        SteerOperationType::SetSign => {}
+        SteerOperationType::AddSign => {}
+        SteerOperationType::SetNegativeX => {
+            if value < 0f32 && prev_value > 0f32
+            {
+                value = modify_value;
+            }
+            else if value > 0f32 && prev_value < 0f32
+            {
+                value = modify_value;
+            }
+        }
+        SteerOperationType::SetNegativeY => {
+            if value < 0f32 && prev_value > 0f32
+            {
+                value = modify_value;
+            }
+            else if value > 0f32 && prev_value < 0f32
+            {
+                value = modify_value;
+            }
+        }
+        SteerOperationType::SetNegativeZ => {
+            if value < 0f32 && prev_value > 0f32
+            {
+                value = modify_value;
+            }
+            else if value > 0f32 && prev_value < 0f32
+            {
+                value = modify_value;
+            }
+        }
+        SteerOperationType::SetMinimum => {
+            if value > modify_value {
+                value = modify_value;
+            }
+        }
+        SteerOperationType::SetMaximum => {
+            if value < modify_value {
+                value = modify_value;
+            }
+        }
+        SteerOperationType::SetIgnore => {}
+        SteerOperationType::SetInherit => {}
+        SteerOperationType::SetTarget => {}
+        SteerOperationType::SetHomingValue => {}
+        SteerOperationType::SetHomingTime => {}
+        SteerOperationType::SetInheritXYZ => {}
+    }
+    value
 }
 
 impl Viewer {
@@ -140,6 +252,15 @@ impl Viewer {
             });
         if self.selected_index != -1 {
             if self.should_update {
+                self.position = Default::default();
+                self.velocity = Default::default();
+                self.acceleration = Default::default();
+                self.prev_position = Default::default();
+                self.prev_velocity = Default::default();
+                self.prev_acceleration = Default::default();
+                for frame in 0..self.current_frame {
+                    self.update_position(frame as i32);
+                }
                 self.get_boxes();
                 self.get_trigger_keys();
                 self.should_update = false;
@@ -237,7 +358,7 @@ impl Viewer {
                             cancel_flags.push_str("Inhibit | ")
                         }
                         if trigger.condition_flag & 0b010000000000000000000000 > 0 {
-                            cancel_flags.push_str("TERMINATOR | ")
+                            cancel_flags.push_str("Terminator | ")
                         }
                         if cancel_flags.len() > 3 {
                             cancel_flags = cancel_flags[0..cancel_flags.len() - 3].to_owned();
@@ -254,6 +375,103 @@ impl Viewer {
             ui.horizontal(|ui| {
                 ui.label("Select an action from the action list!");
             }).response
+        }
+    }
+    
+    fn update_position(&mut self, frame: i32)
+    {
+        self.velocity.x += self.acceleration.x;
+        self.velocity.y += self.acceleration.y;
+        self.velocity.z += self.acceleration.z;
+        self.position.x += self.velocity.x;
+        self.position.y += self.velocity.y;
+        self.position.z += self.velocity.z;
+        match &self.asset {
+            Some(fchar) => {
+                let action = &fchar.action_list[self.selected_index.clone() as usize];
+                for object in &action.objects {
+                    for (index, object_index) in object.action.object_table.iter().enumerate() {
+                        if object.info.object_data.key_data[index].key_start_frame <= frame as i32
+                            && object.info.object_data.key_data[index].key_end_frame > frame as i32 {
+                            let data = &object.action.data[object_index.clone() as usize - 1];
+                            match data.name.as_str() {
+                                "CharacterAsset.SteerKey" => {
+                                    let op_value = &data.fields[0].value;
+                                    let mut op_type: SteerOperationType = Default::default();
+                                    match op_value {
+                                        RSZValue::UInt8(ubyte) => {
+                                            op_type = num::FromPrimitive::from_u8(ubyte.clone()).unwrap();
+                                        }
+                                        _ => ()
+                                    }
+                                    let value = &data.fields[1].value;
+                                    let mut value_type: SteerValueType = Default::default();
+                                    match value {
+                                        RSZValue::UInt8(ubyte) => {
+                                            value_type = num::FromPrimitive::from_u8(ubyte.clone()).unwrap();
+                                        }
+                                        _ => ()
+                                    }
+                                    let modify_type = &data.fields[4].value;
+                                    let mut modify_value = 0f32;
+                                    match modify_type {
+                                        RSZValue::Float(float) => {
+                                            modify_value = float.clone();
+                                        }
+                                        _ => ()
+                                    }
+                                    match value_type {
+                                        SteerValueType::VelocityX => self.velocity.x = steer_key_to_value(op_type.clone(), self.velocity.x, self.prev_velocity.x, modify_value), 
+                                        SteerValueType::VelocityY => self.velocity.y = steer_key_to_value(op_type.clone(), self.velocity.y, self.prev_velocity.y, modify_value),
+                                        SteerValueType::VelocityZ => self.velocity.z = steer_key_to_value(op_type.clone(), self.velocity.z, self.prev_velocity.z, modify_value),
+                                        SteerValueType::AccelerationX => self.acceleration.x = steer_key_to_value(op_type.clone(), self.acceleration.x, self.prev_acceleration.x, modify_value),
+                                        SteerValueType::AccelerationY => self.acceleration.y = steer_key_to_value(op_type.clone(), self.acceleration.y, self.prev_acceleration.y, modify_value),
+                                        SteerValueType::AccelerationZ => self.acceleration.z = steer_key_to_value(op_type.clone(), self.acceleration.z, self.prev_acceleration.z, modify_value),
+                                    }
+                                    match op_type {
+                                        SteerOperationType::SetNegativeX => {
+                                            if self.velocity.x == 0f32
+                                            {
+                                                self.acceleration.x = 0f32;
+                                            }
+                                        }
+                                        SteerOperationType::SetNegativeY => {
+                                            if self.velocity.y == 0f32
+                                            {
+                                                self.acceleration.y = 0f32;
+                                            }
+                                        }
+                                        SteerOperationType::SetNegativeZ => {
+                                            if self.velocity.z == 0f32
+                                            {
+                                                self.acceleration.z = 0f32;
+                                            }
+                                        }
+                                        _ => ()
+                                    }
+                                }
+                                _ => ()
+                            }
+                        }
+                    }
+                }
+            }
+            None => ()
+        }        
+        self.prev_acceleration.x = self.acceleration.x;
+        self.prev_acceleration.y = self.acceleration.y;
+        self.prev_acceleration.z = self.acceleration.z;
+        self.prev_velocity.x = self.velocity.x;
+        self.prev_velocity.y = self.velocity.y;
+        self.prev_velocity.z = self.velocity.z;
+        self.prev_position.x = self.position.x;
+        self.prev_position.y = self.position.y;
+        self.prev_position.z = self.position.z;
+
+        if self.position.y < 0f32 {
+            self.position.y = 0f32;
+            self.velocity.y = 0f32;
+            self.acceleration.y = 0f32;
         }
     }
     
@@ -385,7 +603,7 @@ impl Viewer {
             }
         }
         let mut index: usize = 0;
-        for (n, value) in fchar.data_list_table[data_index as usize].data_ids.iter().enumerate()
+        for (n, value) in fchar.data_list_table[data_index].data_ids.iter().enumerate()
         {
             if value.clone() == int as u32 {
                 index = n + 1;
@@ -394,7 +612,7 @@ impl Viewer {
         if index == 0 {
             return;
         }
-        let data = &fchar.data_list_table[data_index as usize]
+        let data = &fchar.data_list_table[data_index]
             .data_rsz.data[index * 6 - 1];
         let x_field = &data.fields[0].value;
         let mut x = 0f32;
@@ -673,10 +891,10 @@ impl Viewer {
         {
             painter.rect(
                 Rect {
-                    min: Pos2{x: -(push_collision_key.pushbox.x.clone() + push_collision_key.pushbox.width.clone()) + self.offset_x.clone() + 0.5,
-                        y: -(push_collision_key.pushbox.y.clone() + push_collision_key.pushbox.height.clone()) + self.offset_y.clone() + 0.5},
-                    max: Pos2{x: -(push_collision_key.pushbox.x.clone() - push_collision_key.pushbox.width.clone()) + self.offset_x.clone() - 0.5,
-                        y: -(push_collision_key.pushbox.y.clone() - push_collision_key.pushbox.height.clone()) + self.offset_y.clone() - 0.5},
+                    min: Pos2{x: push_collision_key.pushbox.x.clone() - push_collision_key.pushbox.width.clone() + self.offset_x.clone() + 0.5 + self.position.x,
+                        y: -push_collision_key.pushbox.y.clone() - push_collision_key.pushbox.height.clone() + self.offset_y.clone() + 0.5 - self.position.y},
+                    max: Pos2{x: push_collision_key.pushbox.x.clone() + push_collision_key.pushbox.width.clone() + self.offset_x.clone() - 0.5 + self.position.x,
+                        y: -push_collision_key.pushbox.y.clone() + push_collision_key.pushbox.height.clone() + self.offset_y.clone() - 0.5 - self.position.y},
                 },
                 0.0,
                 egui::Rgba::from_rgba_unmultiplied(0.8,0.8,0.0,0.25),
@@ -688,10 +906,10 @@ impl Viewer {
             for hurtbox in &damage_collision_key.boxes {
                 painter.rect(
                     Rect {
-                        min: Pos2{x: -(hurtbox.x.clone() + hurtbox.width.clone()) + self.offset_x.clone() + 0.5,
-                            y: -(hurtbox.y.clone() + hurtbox.height.clone()) + self.offset_y.clone() + 0.5},
-                        max: Pos2{x: -(hurtbox.x.clone() - hurtbox.width.clone()) + self.offset_x.clone() - 0.5,
-                            y: -(hurtbox.y.clone() - hurtbox.height.clone()) + self.offset_y.clone() - 0.5},
+                        min: Pos2{x: hurtbox.x.clone() - hurtbox.width.clone() + self.offset_x.clone() + 0.5 + self.position.x,
+                            y: -hurtbox.y.clone() - hurtbox.height.clone() + self.offset_y.clone() + 0.5 - self.position.y},
+                        max: Pos2{x: hurtbox.x.clone() + hurtbox.width.clone() + self.offset_x.clone() - 0.5 + self.position.x,
+                            y: -hurtbox.y.clone() + hurtbox.height.clone() + self.offset_y.clone() - 0.5 - self.position.y},
                     },
                     0.0,
                     egui::Rgba::from_rgba_unmultiplied(0.0,0.8,0.0,0.25),
@@ -705,10 +923,10 @@ impl Viewer {
                 if attack_collision_key.collision_type == 3 {
                     painter.rect(
                         Rect {
-                            min: Pos2{x: -(hitbox.x.clone() + hitbox.width.clone()) + self.offset_x.clone() + 0.5,
-                                y: -(hitbox.y.clone() + hitbox.height.clone()) + self.offset_y.clone() + 0.5},
-                            max: Pos2{x: -(hitbox.x.clone() - hitbox.width.clone()) + self.offset_x.clone() - 0.5,
-                                y: -(hitbox.y.clone() - hitbox.height.clone()) + self.offset_y.clone() - 0.5},
+                            min: Pos2{x: hitbox.x.clone() - hitbox.width.clone() + self.offset_x.clone() + 0.5,
+                                y: -hitbox.y.clone() - hitbox.height.clone() + self.offset_y.clone() + 0.5},
+                            max: Pos2{x: hitbox.x.clone() + hitbox.width.clone() + self.offset_x.clone() - 0.5,
+                                y: -hitbox.y.clone() + hitbox.height.clone() + self.offset_y.clone() - 0.5},
                         },
                         0.0,
                         egui::Rgba::from_rgba_unmultiplied(0.5,0.5,0.5,0.25),
@@ -718,10 +936,10 @@ impl Viewer {
                 else {
                     painter.rect(
                         Rect {
-                            min: Pos2{x: -(hitbox.x.clone() + hitbox.width.clone()) + self.offset_x.clone() + 0.5,
-                                y: -(hitbox.y.clone() + hitbox.height.clone()) + self.offset_y.clone() + 0.5},
-                            max: Pos2{x: -(hitbox.x.clone() - hitbox.width.clone()) + self.offset_x.clone() - 0.5,
-                                y: -(hitbox.y.clone() - hitbox.height.clone()) + self.offset_y.clone() - 0.5},
+                            min: Pos2{x: hitbox.x.clone() - hitbox.width.clone() + self.offset_x.clone() + 0.5 + self.position.x,
+                                y: -hitbox.y.clone() - hitbox.height.clone() + self.offset_y.clone() + 0.5 - self.position.y},
+                            max: Pos2{x: hitbox.x.clone() + hitbox.width.clone() + self.offset_x.clone() - 0.5 + self.position.x,
+                                y: -hitbox.y.clone() + hitbox.height.clone() + self.offset_y.clone() - 0.5 - self.position.y},
                         },
                         0.0,
                         egui::Rgba::from_rgba_unmultiplied(0.8,0.0,0.0,0.25),
