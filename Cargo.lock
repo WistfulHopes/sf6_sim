@@ -2098,7 +2098,7 @@ dependencies = [
 
 [[package]]
 name = "sf6_sim"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "bitflags 2.3.2",
  "bitvec",

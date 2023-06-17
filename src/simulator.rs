@@ -271,7 +271,7 @@ impl Viewer {
                     return;
                 }
                 let mut triggers: Vec<u64> = vec![];
-                let trigger_group = &fchar.data_list_table[7].data_rsz.data[index];
+                let trigger_group = &fchar.data_list_table[data_index].data_rsz.data[index];
                 match &trigger_group.fields[1].value {
                     RSZValue::List(list) => {
                         for select_trigger in list {
@@ -291,8 +291,15 @@ impl Viewer {
                         if bit == false {
                             continue;
                         }
+                        let mut data_index: usize = 0;
+                        for (n, data_id) in fchar.data_id_table.iter().enumerate() {
+                            match data_id {
+                                DataId::Trigger => data_index = n,
+                                _ => ()
+                            }
+                        }
                         let mut index: usize = 0;
-                        for (n, value) in fchar.data_list_table[8].data_ids.iter().enumerate()
+                        for (n, value) in fchar.data_list_table[data_index].data_ids.iter().enumerate()
                         {
                             if value.clone() == (bit_index + trigger_index * 64) as u32 {
                                 index = n  + 1;
@@ -300,7 +307,7 @@ impl Viewer {
                         }
                         let mut stored_trigger: Trigger = Default::default();
                         stored_trigger.condition_flag = condition_flag;
-                        let trigger = &fchar.data_list_table[8].data_rsz.data[index * 17 - 1];
+                        let trigger = &fchar.data_list_table[data_index].data_rsz.data[index * 17 - 1];
                         match &trigger.fields[5].value
                         {
                             RSZValue::Int32(action) => {
