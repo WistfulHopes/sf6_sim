@@ -101,6 +101,9 @@ impl Viewer {
                 match fchar {
                     Ok(fchar) => {
                         self.asset = Some(fchar.1);
+                        self.selected_index = -1;
+                        self.action_index = 0;
+                        self.current_frame = 0;
                         true
                     }   
                     Err(_) => false
@@ -111,8 +114,12 @@ impl Viewer {
     }
     
     pub fn ui(&mut self, ui: &mut egui::Ui) -> egui::Response {
+        let mut action_label: String = format!("Action #{}: {}", self.selected_index, self.action_index);
+        if self.selected_index == -1 {
+            action_label = "Select an action".to_owned();
+        }
         ComboBox::from_label("Action List")
-            .selected_text(format!("Action #{}: {}", self.selected_index, self.action_index))
+            .selected_text(action_label)
             .width(150.0)
             .show_ui(ui, |ui| {
                 match &self.asset {
@@ -124,6 +131,7 @@ impl Viewer {
                                 self.selected_index = index as i32;
                                 self.action_index = action_index.clone();
                                 self.should_update = true;
+                                self.current_frame = 0;
                             }
                         }
                     }
