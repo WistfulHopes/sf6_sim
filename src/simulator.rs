@@ -1,6 +1,8 @@
 ﻿use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
+use bitvec::order::Lsb0;
+use bitvec::view::BitView;
 use eframe::egui;
 use eframe::egui::{Color32, ComboBox, Frame, Sense, Slider};
 use eframe::emath::{Pos2, Rect};
@@ -47,6 +49,12 @@ struct AttackCollisionKey {
     boxes: Vec<CollisionBox>
 }
 
+#[derive(Default, Ord, PartialOrd, Eq, PartialEq)]
+struct Trigger {
+    action: i32,
+    condition_flag: u32,
+}
+
 pub struct Viewer {
     pub asset: Option<CharacterAsset>,
     selected_index: i32,
@@ -55,6 +63,7 @@ pub struct Viewer {
     push_collision_keys: Vec<PushCollisionKey>,
     damage_collision_keys: Vec<DamageCollisionKey>,
     attack_collision_keys: Vec<AttackCollisionKey>,
+    triggers: Vec<Trigger>,
     offset_x: f32,
     offset_y: f32,
     last_cursor_pos: Pos2,
@@ -71,6 +80,7 @@ impl Default for Viewer {
             push_collision_keys: vec![],
             damage_collision_keys: vec![],
             attack_collision_keys: vec![],
+            triggers: vec![],
             offset_x: 640.0,
             offset_y: 360.0,
             last_cursor_pos: Default::default(),
@@ -123,12 +133,9 @@ impl Viewer {
         if self.selected_index != -1 {
             if self.should_update {
                 self.get_boxes();
+                self.get_trigger_keys();
                 self.should_update = false;
             }
-            Frame::canvas(ui.style()).show(ui, |ui| {
-                self.render_boxes(ui)
-            });
-            
             ui.horizontal(|ui| {
                 match &self.asset {
                     Some(fchar) => {
@@ -142,11 +149,97 @@ impl Viewer {
                                 .text("Current Frame")
                         );
                         if temp_frame != self.current_frame {
-                            self.get_boxes();
+                            self.should_update = true;
                         }
                     }
                     None => ()
                 }
+            }).response;
+            egui::ScrollArea::vertical()
+                .show(ui, |ui| {
+                Frame::canvas(ui.style()).show(ui, |ui| {
+                    self.render_boxes(ui)
+                });
+                ui.label("Cancel list:");
+                for trigger in &self.triggers {
+                    ui.horizontal(|ui| {
+                        ui.label(format!("Action {}", trigger.action));
+                        let mut cancel_flags: String = "".to_owned();
+                        if trigger.condition_flag & 0b1 > 0 {
+                            cancel_flags.push_str("Hit | ")
+                        }
+                        if trigger.condition_flag & 0b10 > 0 {
+                            cancel_flags.push_str("Guard | ")
+                        }
+                        if trigger.condition_flag & 0b100 > 0 {
+                            cancel_flags.push_str("Swing | ")
+                        }
+                        if trigger.condition_flag & 0b010000000000 > 0 {
+                            cancel_flags.push_str("Counter | ")
+                        }
+                        if trigger.condition_flag & 0b0001000000000000 > 0 {
+                            cancel_flags.push_str("Parry | ")
+                        }
+                        if trigger.condition_flag & 0b0010000000000000 > 0 {
+                            cancel_flags.push_str("Just | ")
+                        }
+                        if trigger.condition_flag & 0b100000000000 > 0 {
+                            cancel_flags.push_str("Strike | ")
+                        }
+                        if trigger.condition_flag & 0b1000 > 0 {
+                            cancel_flags.push_str("Armor | ")
+                        }
+                        if trigger.condition_flag & 0b00010000 > 0 {
+                            cancel_flags.push_str("Jump | ")
+                        }
+                        if trigger.condition_flag & 0b00100000 > 0 {
+                            cancel_flags.push_str("SuperJump | ")
+                        }
+                        if trigger.condition_flag & 0b10000000 > 0 {
+                            cancel_flags.push_str("Fly | ")
+                        }
+                        if trigger.condition_flag & 0b000100000000 > 0 {
+                            cancel_flags.push_str("WallBk | ")
+                        }
+                        if trigger.condition_flag & 0b01000000000000000000 > 0 {
+                            cancel_flags.push_str("VJump | ")
+                        }
+                        if trigger.condition_flag & 0b10000000000000000000 > 0 {
+                            cancel_flags.push_str("FJump | ")
+                        }
+                        if trigger.condition_flag & 0b000100000000000000000000 > 0 {
+                            cancel_flags.push_str("BJump | ")
+                        }
+                        if trigger.condition_flag & 0b001000000000000000000000 > 0 {
+                            cancel_flags.push_str("Throw | ")
+                        }
+                        if trigger.condition_flag & 0b0100000000000000 > 0 {
+                            cancel_flags.push_str("Normal | ")
+                        }
+                        if trigger.condition_flag & 0b1000000000000000 > 0 {
+                            cancel_flags.push_str("Easy | ")
+                        }
+                        if trigger.condition_flag & 0b00010000000000000000 > 0 {
+                            cancel_flags.push_str("Extra | ")
+                        }
+                        if trigger.condition_flag & 0b01000000 > 0 {
+                            cancel_flags.push_str("Defer | ")
+                        }
+                        if trigger.condition_flag & 0b00100000000000000000 > 0 {
+                            cancel_flags.push_str("Inhibit | ")
+                        }
+                        if trigger.condition_flag & 0b010000000000000000000000 > 0 {
+                            cancel_flags.push_str("TERMINATOR | ")
+                        }
+                        if cancel_flags.len() > 3 {
+                            cancel_flags = cancel_flags[0..cancel_flags.len() - 3].to_owned();
+                        }
+                        ui.label(format!("Cancel flags: {}", cancel_flags));
+                    });
+                }
+            });
+            ui.horizontal(|ui| {
+                ui.label("");
             }).response
         }
         else {
@@ -154,6 +247,111 @@ impl Viewer {
                 ui.label("Select an action from the action list!");
             }).response
         }
+    }
+    
+    fn get_triggers(&mut self, group: i32, condition_flag: u32)
+    {
+        match &self.asset {
+            Some(fchar) => {
+                let mut index: usize = 0;
+                for (n, value) in fchar.data_list_table[7].data_ids.iter().enumerate()
+                {
+                    if value.clone() == group as u32 {
+                        index = n;
+                    }
+                }
+                if index == 0 {
+                    return;
+                }
+                let mut triggers: Vec<u64> = vec![];
+                let trigger_group = &fchar.data_list_table[7].data_rsz.data[index];
+                match &trigger_group.fields[1].value {
+                    RSZValue::List(list) => {
+                        for select_trigger in list {
+                            match select_trigger {
+                                RSZValue::UInt64(ulong) => {
+                                    triggers.push(ulong.clone());
+                                }
+                                _ => ()
+                            }
+                        }
+                    }
+                    _ => ()
+                }
+                for (trigger_index, select_trigger) in triggers.iter().enumerate() {
+                    let bits = select_trigger.view_bits::<Lsb0>();
+                    for (bit_index, bit) in bits.iter().enumerate() {
+                        if bit == false {
+                            continue;
+                        }
+                        let mut index: usize = 0;
+                        for (n, value) in fchar.data_list_table[8].data_ids.iter().enumerate()
+                        {
+                            if value.clone() == (bit_index + trigger_index * 64) as u32 {
+                                index = n  + 1;
+                            }
+                        }
+                        let mut stored_trigger: Trigger = Default::default();
+                        stored_trigger.condition_flag = condition_flag;
+                        let trigger = &fchar.data_list_table[8].data_rsz.data[index * 17 - 1];
+                        match &trigger.fields[5].value
+                        {
+                            RSZValue::Int32(action) => {
+                                stored_trigger.action = action.clone();
+                            }
+                            _ => ()
+                        }
+                        self.triggers.push(stored_trigger);
+                    }
+                }
+            }
+            None => ()
+        }
+    }
+    
+    fn get_trigger_keys(&mut self)
+    {
+        self.triggers.clear();
+        let mut groups: Vec<i32> = vec![];
+        let mut condition_flags: Vec<u32> = vec![];
+        match &self.asset {
+            Some(fchar) => {
+                let action = &fchar.action_list[self.selected_index.clone() as usize];
+                for object in &action.objects {
+                    for (index, object_index) in object.action.object_table.iter().enumerate() {
+                        if object.info.object_data.key_data[index].key_start_frame <= self.current_frame as i32
+                            && object.info.object_data.key_data[index].key_end_frame > self.current_frame as i32 {
+                            let data = &object.action.data[object_index.clone() as usize - 1];
+                            match data.name.as_str() {
+                                "CharacterAsset.TriggerKey" => {
+                                    let group = &data.fields[0].value;
+                                    match group {
+                                        RSZValue::Int32(group) => {
+                                            groups.push(group.clone());
+                                        }
+                                        _ => ()
+                                    }
+                                    let condition_flag = &data.fields[1].value;
+                                    match condition_flag {
+                                        RSZValue::UInt32(condition_flag) => {
+                                            condition_flags.push(condition_flag.clone());
+                                        }
+                                        _ => ()
+                                    }
+                                }
+                                _ => ()
+                            }
+                        }
+                    }
+                }
+            }
+            None => ()
+        }
+        for (index, group) in groups.iter().enumerate() {
+            self.get_triggers(group.clone(), condition_flags[index]);
+        }
+        self.triggers.sort_unstable();
+        self.triggers.dedup();
     }
     
     fn index_to_box(&self, fchar: &CharacterAsset, int: i32, data_index: i32, boxes: &mut Vec<CollisionBox>)
@@ -237,9 +435,12 @@ impl Viewer {
                                         }
                                         _ => ()
                                     }
-
-                                    pushbox = boxes[0].clone();
-
+                                    
+                                    if boxes.len() > 0
+                                    {
+                                        pushbox = boxes[0].clone();
+                                    }
+                                    
                                     let push_collision = PushCollisionKey {
                                         condition,
                                         attribute,

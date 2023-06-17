@@ -7,5 +7,7 @@ edition = "2021"
 
 [dependencies]
 sf6_rsz_parser = { git = "https://github.com/WistfulHopes/sf6_rsz_parser.git" }
-eframe = "0.21.3"
+eframe = "0.22"
 rfd = { git = "https://github.com/PolyMeilex/rfd.git" }
+bitvec = { git = "https://github.com/ferrilab/bitvec.git" }
+bitflags = "2.3.2"
