@@ -7,7 +7,7 @@ use eframe::egui;
 use eframe::egui::{Color32, ComboBox, Frame, Sense, Slider};
 use eframe::emath::{Pos2, Rect};
 use eframe::epaint::Stroke;
-use sf6_rsz_parser::CharacterAsset;
+use sf6_rsz_parser::fchar::{CharacterAsset, DataId};
 use sf6_rsz_parser::parse_fchar;
 use sf6_rsz_parser::rsz::json_parser::parse_json;
 use sf6_rsz_parser::rsz::RSZValue;
@@ -253,8 +253,15 @@ impl Viewer {
     {
         match &self.asset {
             Some(fchar) => {
+                let mut data_index: usize = 0;
+                for (n, data_id) in fchar.data_id_table.iter().enumerate() {
+                    match data_id {
+                        DataId::TriggerGroup => data_index = n,
+                        _ => ()
+                    }
+                }
                 let mut index: usize = 0;
-                for (n, value) in fchar.data_list_table[7].data_ids.iter().enumerate()
+                for (n, value) in fchar.data_list_table[data_index].data_ids.iter().enumerate()
                 {
                     if value.clone() == group as u32 {
                         index = n;
@@ -354,8 +361,14 @@ impl Viewer {
         self.triggers.dedup();
     }
     
-    fn index_to_box(&self, fchar: &CharacterAsset, int: i32, data_index: i32, boxes: &mut Vec<CollisionBox>)
+    fn index_to_box(&self, fchar: &CharacterAsset, int: i32, data_type: DataId, boxes: &mut Vec<CollisionBox>)
     {
+        let mut data_index: usize = 0;
+        for (n, data_id) in fchar.data_id_table.iter().enumerate() {
+            if data_id.clone() == data_type {
+                data_index = n;
+            }
+        }
         let mut index: usize = 0;
         for (n, value) in fchar.data_list_table[data_index as usize].data_ids.iter().enumerate()
         {
@@ -431,7 +444,7 @@ impl Viewer {
                                     }
                                     match &data.fields[2].value {
                                         RSZValue::Int32(int) => {
-                                            self.index_to_box(&fchar, int.clone(), 16, &mut boxes);
+                                            self.index_to_box(&fchar, int.clone(), DataId::ThrowHurtBox, &mut boxes);
                                         }
                                         _ => ()
                                     }
@@ -459,7 +472,7 @@ impl Viewer {
                                     for head_index in head_list {
                                         match head_index {
                                             RSZValue::Int32(int) => {
-                                                self.index_to_box(&fchar, int.clone(), 17, &mut boxes);
+                                                self.index_to_box(&fchar, int.clone(), DataId::HurtBox, &mut boxes);
                                             }
                                             _ => ()
                                         }
@@ -472,7 +485,7 @@ impl Viewer {
                                     for body_index in body_list {
                                         match body_index {
                                             RSZValue::Int32(int) => {
-                                                self.index_to_box(&fchar, int.clone(), 17, &mut boxes);
+                                                self.index_to_box(&fchar, int.clone(), DataId::HurtBox, &mut boxes);
                                             }
                                             _ => ()
                                         }
@@ -485,7 +498,7 @@ impl Viewer {
                                     for leg_index in leg_list {
                                         match leg_index {
                                             RSZValue::Int32(int) => {
-                                                self.index_to_box(&fchar, int.clone(), 17, &mut boxes);
+                                                self.index_to_box(&fchar, int.clone(), DataId::HurtBox, &mut boxes);
                                             }
                                             _ => ()
                                         }
@@ -549,7 +562,7 @@ impl Viewer {
                                     for index in box_list {
                                         match index {
                                             RSZValue::Int32(int) => {
-                                                self.index_to_box(&fchar, int.clone(), 9, &mut boxes);
+                                                self.index_to_box(&fchar, int.clone(), DataId::StrikeBox, &mut boxes);
                                             }
                                             _ => ()
                                         }
@@ -638,29 +651,31 @@ impl Viewer {
         }
         for push_collision_key in &self.push_collision_keys
         {
-            painter.rect_stroke(
+            painter.rect(
                 Rect {
-                    min: Pos2{x: -(push_collision_key.pushbox.x.clone() + push_collision_key.pushbox.width.clone()) + self.offset_x.clone() + 1.5,
-                        y: -(push_collision_key.pushbox.y.clone() + push_collision_key.pushbox.height.clone()) + self.offset_y.clone() + 1.5},
-                    max: Pos2{x: -(push_collision_key.pushbox.x.clone() - push_collision_key.pushbox.width.clone()) + self.offset_x.clone() - 1.5,
-                        y: -(push_collision_key.pushbox.y.clone() - push_collision_key.pushbox.height.clone()) + self.offset_y.clone() - 1.5},
+                    min: Pos2{x: -(push_collision_key.pushbox.x.clone() + push_collision_key.pushbox.width.clone()) + self.offset_x.clone() + 0.5,
+                        y: -(push_collision_key.pushbox.y.clone() + push_collision_key.pushbox.height.clone()) + self.offset_y.clone() + 0.5},
+                    max: Pos2{x: -(push_collision_key.pushbox.x.clone() - push_collision_key.pushbox.width.clone()) + self.offset_x.clone() - 0.5,
+                        y: -(push_collision_key.pushbox.y.clone() - push_collision_key.pushbox.height.clone()) + self.offset_y.clone() - 0.5},
                 },
                 0.0,
-                Stroke{width: 3.0, color: Color32::YELLOW},
+                egui::Rgba::from_rgba_unmultiplied(0.8,0.8,0.0,0.25),
+                Stroke{width: 1.0, color: Color32::YELLOW},
             );
         }
         for damage_collision_key in &self.damage_collision_keys
         {
             for hurtbox in &damage_collision_key.boxes {
-                painter.rect_stroke(
+                painter.rect(
                     Rect {
-                        min: Pos2{x: -(hurtbox.x.clone() + hurtbox.width.clone()) + self.offset_x.clone() + 1.5,
-                            y: -(hurtbox.y.clone() + hurtbox.height.clone()) + self.offset_y.clone() + 1.5},
-                        max: Pos2{x: -(hurtbox.x.clone() - hurtbox.width.clone()) + self.offset_x.clone() - 1.5,
-                            y: -(hurtbox.y.clone() - hurtbox.height.clone()) + self.offset_y.clone() - 1.5},
+                        min: Pos2{x: -(hurtbox.x.clone() + hurtbox.width.clone()) + self.offset_x.clone() + 0.5,
+                            y: -(hurtbox.y.clone() + hurtbox.height.clone()) + self.offset_y.clone() + 0.5},
+                        max: Pos2{x: -(hurtbox.x.clone() - hurtbox.width.clone()) + self.offset_x.clone() - 0.5,
+                            y: -(hurtbox.y.clone() - hurtbox.height.clone()) + self.offset_y.clone() - 0.5},
                     },
                     0.0,
-                    Stroke{width: 3.0, color: Color32::GREEN},
+                    egui::Rgba::from_rgba_unmultiplied(0.0,0.8,0.0,0.25),
+                    Stroke{width: 1.0, color: Color32::GREEN},
                 );
             }
         }
@@ -668,32 +683,33 @@ impl Viewer {
         {
             for hitbox in &attack_collision_key.boxes {
                 if attack_collision_key.collision_type == 3 {
-                    painter.rect_stroke(
+                    painter.rect(
                         Rect {
-                            min: Pos2{x: -(hitbox.x.clone() + hitbox.width.clone()) + self.offset_x.clone() + 1.5,
-                                y: -(hitbox.y.clone() + hitbox.height.clone()) + self.offset_y.clone() + 1.5},
-                            max: Pos2{x: -(hitbox.x.clone() - hitbox.width.clone()) + self.offset_x.clone() - 1.5,
-                                y: -(hitbox.y.clone() - hitbox.height.clone()) + self.offset_y.clone() - 1.5},
+                            min: Pos2{x: -(hitbox.x.clone() + hitbox.width.clone()) + self.offset_x.clone() + 0.5,
+                                y: -(hitbox.y.clone() + hitbox.height.clone()) + self.offset_y.clone() + 0.5},
+                            max: Pos2{x: -(hitbox.x.clone() - hitbox.width.clone()) + self.offset_x.clone() - 0.5,
+                                y: -(hitbox.y.clone() - hitbox.height.clone()) + self.offset_y.clone() - 0.5},
                         },
                         0.0,
-                        Stroke{width: 3.0, color: Color32::GRAY},
+                        egui::Rgba::from_rgba_unmultiplied(0.5,0.5,0.5,0.25),
+                        Stroke{width: 1.0, color: Color32::GRAY},
                     );
                 }
                 else {
-                    painter.rect_stroke(
+                    painter.rect(
                         Rect {
-                            min: Pos2{x: -(hitbox.x.clone() + hitbox.width.clone()) + self.offset_x.clone() + 1.5,
-                                y: -(hitbox.y.clone() + hitbox.height.clone()) + self.offset_y.clone() + 1.5},
-                            max: Pos2{x: -(hitbox.x.clone() - hitbox.width.clone()) + self.offset_x.clone() - 1.5,
-                                y: -(hitbox.y.clone() - hitbox.height.clone()) + self.offset_y.clone() - 1.5},
+                            min: Pos2{x: -(hitbox.x.clone() + hitbox.width.clone()) + self.offset_x.clone() + 0.5,
+                                y: -(hitbox.y.clone() + hitbox.height.clone()) + self.offset_y.clone() + 0.5},
+                            max: Pos2{x: -(hitbox.x.clone() - hitbox.width.clone()) + self.offset_x.clone() - 0.5,
+                                y: -(hitbox.y.clone() - hitbox.height.clone()) + self.offset_y.clone() - 0.5},
                         },
                         0.0,
-                        Stroke{width: 3.0, color: Color32::RED},
-                    );
+                        egui::Rgba::from_rgba_unmultiplied(0.8,0.0,0.0,0.25),
+                        Stroke{width: 1.0, color: Color32::RED},
+                    )
                 }
             }
         }
-
         response
     }
 }
