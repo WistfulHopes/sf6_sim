@@ -561,20 +561,6 @@ impl Viewer {
                                 "CharacterAsset.AttackCollisionKey" => {
                                     let mut boxes: Vec<CollisionBox> = vec![];
 
-                                    let mut box_list: &Vec<RSZValue> = &vec![];
-                                    match &data.fields[11].value {
-                                        RSZValue::List(list) => box_list = list,
-                                        _ => ()
-                                    }
-                                    for index in box_list {
-                                        match index {
-                                            RSZValue::Int32(int) => {
-                                                self.index_to_box(&fchar, int.clone(), DataId::StrikeBox, &mut boxes);
-                                            }
-                                            _ => ()
-                                        }
-                                    }
-
                                     let mut condition = 0u8;
                                     match &data.fields[0].value {
                                         RSZValue::UInt8(ubyte) => condition = ubyte.clone(),
@@ -609,6 +595,25 @@ impl Viewer {
                                         _ => ()
                                     }
 
+                                    let mut box_list: &Vec<RSZValue> = &vec![];
+                                    match &data.fields[11].value {
+                                        RSZValue::List(list) => box_list = list,
+                                        _ => ()
+                                    }
+                                    for index in box_list {
+                                        match index {
+                                            RSZValue::Int32(int) => {
+                                                if collision_type == 3 {
+                                                    self.index_to_box(&fchar, int.clone(), DataId::ProximityBox, &mut boxes);                                                    
+                                                }
+                                                else {
+                                                    self.index_to_box(&fchar, int.clone(), DataId::StrikeBox, &mut boxes);                                                    
+                                                }
+                                            }
+                                            _ => ()
+                                        }
+                                    }
+                                    
                                     let attack_collision = AttackCollisionKey {
                                         condition,
                                         collision_type,
