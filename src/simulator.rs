@@ -111,6 +111,7 @@ pub struct Viewer {
     prev_position: Vector3f,
     prev_velocity: Vector3f,
     prev_acceleration: Vector3f,
+    root_motion: Vector3f,
     offset_x: f32,
     offset_y: f32,
     last_cursor_pos: Pos2,
@@ -134,6 +135,7 @@ impl Default for Viewer {
             prev_position: Default::default(),
             prev_velocity: Default::default(),
             prev_acceleration: Default::default(),
+            root_motion: Default::default(),
             offset_x: 640.0,
             offset_y: 360.0,
             last_cursor_pos: Default::default(),
@@ -258,6 +260,7 @@ impl Viewer {
                 self.prev_position = Default::default();
                 self.prev_velocity = Default::default();
                 self.prev_acceleration = Default::default();
+                self.root_motion = Default::default();
                 for frame in 0..self.current_frame {
                     self.update_position(frame as i32);
                 }
@@ -391,8 +394,8 @@ impl Viewer {
                 let action = &fchar.action_list[self.selected_index.clone() as usize];
                 for object in &action.objects {
                     for (index, object_index) in object.action.object_table.iter().enumerate() {
-                        if object.info.object_data.key_data[index].key_start_frame <= frame as i32
-                            && object.info.object_data.key_data[index].key_end_frame > frame as i32 {
+                        if object.info.object_data.key_data[index].key_start_frame <= frame
+                            && object.info.object_data.key_data[index].key_end_frame > frame {
                             let data = &object.action.data[object_index.clone() as usize - 1];
                             match data.name.as_str() {
                                 "CharacterAsset.SteerKey" => {
@@ -421,7 +424,7 @@ impl Viewer {
                                         _ => ()
                                     }
                                     match value_type {
-                                        SteerValueType::VelocityX => self.velocity.x = steer_key_to_value(op_type.clone(), self.velocity.x, self.prev_velocity.x, modify_value), 
+                                        SteerValueType::VelocityX => self.velocity.x = steer_key_to_value(op_type.clone(), self.velocity.x, self.prev_velocity.x, modify_value),
                                         SteerValueType::VelocityY => self.velocity.y = steer_key_to_value(op_type.clone(), self.velocity.y, self.prev_velocity.y, modify_value),
                                         SteerValueType::VelocityZ => self.velocity.z = steer_key_to_value(op_type.clone(), self.velocity.z, self.prev_velocity.z, modify_value),
                                         SteerValueType::AccelerationX => self.acceleration.x = steer_key_to_value(op_type.clone(), self.acceleration.x, self.prev_acceleration.x, modify_value),
@@ -449,6 +452,44 @@ impl Viewer {
                                         }
                                         _ => ()
                                     }
+                                }
+                                "CharacterAsset.PlaceKey" => {
+                                    let mut pos_list: Vec<&RSZValue> = vec![];
+                                    let pos_list_value = &data.fields[3].value;
+                                    match pos_list_value {
+                                        RSZValue::List(list) => for value in list {
+                                            pos_list.push(value);
+                                        },
+                                        _ => ()
+                                    }
+                                    
+                                    let axis = &data.fields[1].value;
+                                    match axis {
+                                        RSZValue::UInt8(byte) => {
+                                            match byte {
+                                                0 => {
+                                                    match pos_list[frame as usize] {
+                                                        RSZValue::Float(float) => self.root_motion.x = float.clone(),
+                                                        _ => ()
+                                                    }
+                                                }
+                                                1 => {
+                                                    match pos_list[frame as usize] {
+                                                        RSZValue::Float(float) => self.root_motion.y = float.clone(),
+                                                        _ => ()
+                                                    }
+                                                }
+                                                2 => {
+                                                    match pos_list[frame as usize] {
+                                                        RSZValue::Float(float) => self.root_motion.z = float.clone(),
+                                                        _ => ()
+                                                    }
+                                                }
+                                                _ => ()
+                                            }
+                                        }
+                                        _ => ()
+                                    };
                                 }
                                 _ => ()
                             }
@@ -891,10 +932,10 @@ impl Viewer {
         {
             painter.rect(
                 Rect {
-                    min: Pos2{x: push_collision_key.pushbox.x.clone() - push_collision_key.pushbox.width.clone() + self.offset_x.clone() + 0.5 + self.position.x,
-                        y: -push_collision_key.pushbox.y.clone() - push_collision_key.pushbox.height.clone() + self.offset_y.clone() + 0.5 - self.position.y},
-                    max: Pos2{x: push_collision_key.pushbox.x.clone() + push_collision_key.pushbox.width.clone() + self.offset_x.clone() - 0.5 + self.position.x,
-                        y: -push_collision_key.pushbox.y.clone() + push_collision_key.pushbox.height.clone() + self.offset_y.clone() - 0.5 - self.position.y},
+                    min: Pos2{x: push_collision_key.pushbox.x.clone() - push_collision_key.pushbox.width.clone() + self.offset_x.clone() + 0.5 + self.position.x + self.root_motion.x,
+                        y: -push_collision_key.pushbox.y.clone() - push_collision_key.pushbox.height.clone() + self.offset_y.clone() + 0.5 - self.position.y + self.root_motion.y},
+                    max: Pos2{x: push_collision_key.pushbox.x.clone() + push_collision_key.pushbox.width.clone() + self.offset_x.clone() - 0.5 + self.position.x + self.root_motion.x,
+                        y: -push_collision_key.pushbox.y.clone() + push_collision_key.pushbox.height.clone() + self.offset_y.clone() - 0.5 - self.position.y + self.root_motion.y},
                 },
                 0.0,
                 egui::Rgba::from_rgba_unmultiplied(0.8,0.8,0.0,0.25),
@@ -906,10 +947,10 @@ impl Viewer {
             for hurtbox in &damage_collision_key.boxes {
                 painter.rect(
                     Rect {
-                        min: Pos2{x: hurtbox.x.clone() - hurtbox.width.clone() + self.offset_x.clone() + 0.5 + self.position.x,
-                            y: -hurtbox.y.clone() - hurtbox.height.clone() + self.offset_y.clone() + 0.5 - self.position.y},
-                        max: Pos2{x: hurtbox.x.clone() + hurtbox.width.clone() + self.offset_x.clone() - 0.5 + self.position.x,
-                            y: -hurtbox.y.clone() + hurtbox.height.clone() + self.offset_y.clone() - 0.5 - self.position.y},
+                        min: Pos2{x: hurtbox.x.clone() - hurtbox.width.clone() + self.offset_x.clone() + 0.5 + self.position.x + self.root_motion.x,
+                            y: -hurtbox.y.clone() - hurtbox.height.clone() + self.offset_y.clone() + 0.5 - self.position.y + self.root_motion.y},
+                        max: Pos2{x: hurtbox.x.clone() + hurtbox.width.clone() + self.offset_x.clone() - 0.5 + self.position.x + self.root_motion.x,
+                            y: -hurtbox.y.clone() + hurtbox.height.clone() + self.offset_y.clone() - 0.5 - self.position.y + self.root_motion.y},
                     },
                     0.0,
                     egui::Rgba::from_rgba_unmultiplied(0.0,0.8,0.0,0.25),
@@ -936,10 +977,10 @@ impl Viewer {
                 else {
                     painter.rect(
                         Rect {
-                            min: Pos2{x: hitbox.x.clone() - hitbox.width.clone() + self.offset_x.clone() + 0.5 + self.position.x,
-                                y: -hitbox.y.clone() - hitbox.height.clone() + self.offset_y.clone() + 0.5 - self.position.y},
-                            max: Pos2{x: hitbox.x.clone() + hitbox.width.clone() + self.offset_x.clone() - 0.5 + self.position.x,
-                                y: -hitbox.y.clone() + hitbox.height.clone() + self.offset_y.clone() - 0.5 - self.position.y},
+                            min: Pos2{x: hitbox.x.clone() - hitbox.width.clone() + self.offset_x.clone() + 0.5 + self.position.x + self.root_motion.x,
+                                y: -hitbox.y.clone() - hitbox.height.clone() + self.offset_y.clone() + 0.5 - self.position.y + self.root_motion.y},
+                            max: Pos2{x: hitbox.x.clone() + hitbox.width.clone() + self.offset_x.clone() - 0.5 + self.position.x + self.root_motion.x,
+                                y: -hitbox.y.clone() + hitbox.height.clone() + self.offset_y.clone() - 0.5 - self.position.y + self.root_motion.y},
                         },
                         0.0,
                         egui::Rgba::from_rgba_unmultiplied(0.8,0.0,0.0,0.25),
