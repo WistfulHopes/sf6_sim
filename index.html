@@ -8,7 +8,7 @@
     <title>Street Fighter 6 Simulator</title>
 
     <!-- config for our rust wasm binary. go to https://trunkrs.dev/assets/#rust for more customization -->
-    <script type="module">import init from '/sf6_sim.js';init('/sf6_sim_bg.wasm');</script>
+    <script type="module">import init from 'sf6_sim/sf6_sim.js';init('sf6_sim/sf6_sim_bg.wasm');</script>
     <!-- this is the base url relative to which other urls will be constructed. trunk will insert this from the public-url option -->
     <base href="/">
 
@@ -129,7 +129,7 @@
         // We disable caching during development so that we always view the latest version.
         if ('serviceWorker' in navigator && window.location.hash !== "#dev") {
             window.addEventListener('load', function () {
-                navigator.serviceWorker.register('sw.js');
+                navigator.serviceWorker.register('sf6_sim/sw.js');
             });
         }
     </script>
