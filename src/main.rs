@@ -2,20 +2,28 @@
 
 mod simulator;
 
-use eframe::{egui::{self}, emath::Vec2, Frame};
-use eframe::egui::Context;
 use crate::simulator::Viewer;
+use eframe::egui::Context;
+use eframe::{
+    egui::{self},
+    emath::Vec2,
+    Frame,
+};
 
 fn main() {
     let options = eframe::NativeOptions {
-        initial_window_size: Some(Vec2{x: 1280.0, y: 720.0}),
+        initial_window_size: Some(Vec2 {
+            x: 1280.0,
+            y: 720.0,
+        }),
         ..Default::default()
     };
     eframe::run_native(
         "Street Fighter 6 Simulator",
         options,
         Box::new(|_cc| Box::new(SF6Simulator::new(_cc))),
-    ).expect("Failed to start GUI!");
+    )
+    .expect("Failed to start GUI!");
 }
 
 #[derive(Default)]
@@ -84,7 +92,8 @@ impl SF6Simulator {
         if ui.button("Open").clicked() {
             if let Some(path) = rfd::FileDialog::new()
                 .add_filter("FChar File", &["fchar.17"])
-                .pick_file() {
+                .pick_file()
+            {
                 self.success = self.viewer.open_fchar(&path);
                 self.picked_path = Some(path.display().to_string());
             };
