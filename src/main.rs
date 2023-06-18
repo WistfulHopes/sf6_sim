@@ -37,7 +37,7 @@ impl SF6Simulator {
     fn new(_cc: &eframe::CreationContext<'_>) -> Self {
         Self {
             viewer: Default::default(),
-            character_name: "".to_string(),
+            character_name: "Select a character".to_string(),
         }
     }
 }
@@ -46,7 +46,7 @@ impl eframe::App for SF6Simulator {
     fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.horizontal(|ui| {
-                ComboBox::from_label("Select a Character")
+                ComboBox::from_label("Character List")
                     .selected_text(self.character_name.clone())
                     .width(150.0)
                     .show_ui(ui, |ui| {
