@@ -1,16 +1,16 @@
 mod action_names;
 
+use bitvec::vec::BitVec;
 use eframe::egui;
 use eframe::egui::{Color32, ComboBox, Frame, Sense, Slider};
 use eframe::emath::{Pos2, Rect};
 use eframe::epaint::Stroke;
+use include_bytes_zstd::include_bytes_zstd;
 use num_derive::FromPrimitive;
 use sf6_rsz_parser::fchar::{CharacterAsset, DataId};
 use sf6_rsz_parser::parse_fchar;
 use sf6_rsz_parser::rsz::json_parser::parse_json;
 use sf6_rsz_parser::rsz::RSZValue;
-use bitvec::vec::BitVec;
-use include_bytes_zstd::include_bytes_zstd;
 
 #[derive(Default)]
 pub enum Character {
@@ -465,7 +465,7 @@ impl Viewer {
                                         self.current_frame = 1;
                                     }
                                 }
-                                Err(_) => ()
+                                Err(_) => (),
                             }
                         }
                     }
@@ -789,7 +789,7 @@ impl Viewer {
                                         }
                                         _ => (),
                                     }
-                                    
+
                                     if frame >= pos_list.len() as i32 {
                                         return;
                                     }
@@ -1445,8 +1445,8 @@ impl Viewer {
         if visuals.dark_mode {
             painter.circle(
                 Pos2 {
-                    x: self.position.x + self.offset_x.clone(),
-                    y: -self.position.y + self.offset_y.clone(),
+                    x: self.position.x + self.root_motion.x + self.offset_x.clone(),
+                    y: -self.position.y + self.root_motion.y + self.offset_y.clone(),
                 },
                 5f32,
                 Color32::GRAY,
@@ -1458,8 +1458,8 @@ impl Viewer {
         } else {
             painter.circle(
                 Pos2 {
-                    x: self.position.x + self.offset_x.clone(),
-                    y: -self.position.y + self.offset_y.clone(),
+                    x: self.position.x + self.root_motion.x + self.offset_x.clone(),
+                    y: -self.position.y + self.root_motion.y + self.offset_y.clone(),
                 },
                 5f32,
                 Color32::GRAY,

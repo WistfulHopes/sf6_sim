@@ -1,12 +1,12 @@
-﻿mod simulator;
+mod simulator;
 
-use simulator::{Character, Viewer};
 use eframe::egui::{ComboBox, Context};
 use eframe::{
     egui::{self},
     Frame,
 };
 use include_bytes_zstd::include_bytes_zstd;
+use simulator::{Character, Viewer};
 
 #[derive(Default)]
 pub struct SF6Simulator {

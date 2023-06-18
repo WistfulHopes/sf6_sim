@@ -22,7 +22,6 @@ fn main() {
     .expect("Failed to start GUI!");
 }
 
-
 // When compiling to web using trunk:
 #[cfg(target_arch = "wasm32")]
 fn main() {
