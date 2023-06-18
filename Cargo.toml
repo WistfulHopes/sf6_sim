@@ -1,6 +1,6 @@
 [package]
 name = "sf6_sim"
-version = "0.2.0"
+version = "0.2.2"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -14,3 +14,5 @@ bitflags = "2.3.2"
 num = "0.4"
 num-derive = "0.3"
 num-traits = "0.2"
+strum = "0.24"
+strum_macros = "0.24"
