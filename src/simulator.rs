@@ -495,7 +495,7 @@ impl Viewer {
                 ui.collapsing("Cancel list", |ui| {
                     for trigger in &self.triggers {
                         ui.horizontal(|ui| {
-                            ui.label(format!("Action {}", self.get_action_name(self.action_index)));
+                            ui.label(format!("Action {}", self.get_action_name(trigger.action)));
                             let mut cancel_flags: String = "".to_owned();
                             if trigger.condition_flag & 0b1 > 0 {
                                 cancel_flags.push_str("Hit | ")
