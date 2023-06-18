@@ -843,6 +843,9 @@ impl Viewer {
             self.velocity.y = 0f32;
             self.acceleration.y = 0f32;
         }
+        if self.root_motion.y < 0f32 {
+            self.root_motion.y = 0f32;
+        }
     }
 
     fn get_triggers(&mut self, group: i32, condition_flag: u32) {
@@ -1446,7 +1449,7 @@ impl Viewer {
             painter.circle(
                 Pos2 {
                     x: self.position.x + self.root_motion.x + self.offset_x.clone(),
-                    y: -self.position.y + self.root_motion.y + self.offset_y.clone(),
+                    y: -self.position.y - self.root_motion.y + self.offset_y.clone(),
                 },
                 5f32,
                 Color32::GRAY,
@@ -1459,7 +1462,7 @@ impl Viewer {
             painter.circle(
                 Pos2 {
                     x: self.position.x + self.root_motion.x + self.offset_x.clone(),
-                    y: -self.position.y + self.root_motion.y + self.offset_y.clone(),
+                    y: -self.position.y - self.root_motion.y + self.offset_y.clone(),
                 },
                 5f32,
                 Color32::GRAY,
