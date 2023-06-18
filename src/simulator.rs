@@ -213,7 +213,7 @@ impl Viewer {
         let file = File::open(&path);
         match file {
             Ok(mut file) => {
-                parse_json("rszsf6.json".to_string()).unwrap();
+                parse_json("assets/rszsf6.json".to_string()).unwrap();
                 let mut buffer: Vec<u8> = Vec::new();
                 file.read_to_end(&mut buffer).unwrap();
                 let fchar = parse_fchar(&buffer);
@@ -300,18 +300,26 @@ impl Viewer {
             egui::ScrollArea::vertical().show(ui, |ui| {
                 Frame::canvas(ui.style()).show(ui, |ui| self.render_boxes(ui));
                 ui.collapsing("Action info", |ui| {
-                    let mut first_active_frame: String = format!("First active frame: {}", self.action_info.first_active_frame + 1);
+                    let mut first_active_frame: String = format!(
+                        "First active frame: {}",
+                        self.action_info.first_active_frame + 1
+                    );
                     if self.action_info.first_active_frame == -1 {
                         first_active_frame = "First active frame: N/A".to_owned();
                     }
                     ui.label(first_active_frame);
-                    let mut recovery_frame: String = format!("Recovery frame: {}", self.action_info.recovery_frame + 1);
+                    let mut recovery_frame: String =
+                        format!("Recovery frame: {}", self.action_info.recovery_frame + 1);
                     if self.action_info.recovery_frame == -1 {
                         recovery_frame = "Recovery frame: N/A".to_owned();
                     }
                     ui.label(recovery_frame);
-                    ui.label(format!("Actionable frame: {}", self.action_info.end_frame + 1));
-                    let mut loop_count: String = format!("Loop count: {}", self.action_info.loop_count);
+                    ui.label(format!(
+                        "Actionable frame: {}",
+                        self.action_info.end_frame + 1
+                    ));
+                    let mut loop_count: String =
+                        format!("Loop count: {}", self.action_info.loop_count);
                     if self.action_info.loop_count == -1 {
                         loop_count = "Loop count: infinite".to_owned();
                     }
@@ -409,8 +417,7 @@ impl Viewer {
         }
     }
 
-    fn get_action_info(&mut self)
-    {
+    fn get_action_info(&mut self) {
         match &self.asset {
             Some(fchar) => {
                 let action = &fchar.action_list[self.selected_index.clone() as usize];
@@ -418,29 +425,29 @@ impl Viewer {
                 let first_active_frame = &action_frame.fields[0].value;
                 match first_active_frame {
                     RSZValue::Int32(frame) => self.action_info.first_active_frame = frame.clone(),
-                    _ => ()
+                    _ => (),
                 }
                 let recovery_frame = &action_frame.fields[1].value;
                 match recovery_frame {
                     RSZValue::Int32(frame) => self.action_info.recovery_frame = frame.clone(),
-                    _ => ()
+                    _ => (),
                 }
                 let end_frame = &action_frame.fields[2].value;
                 match end_frame {
                     RSZValue::Int32(frame) => self.action_info.end_frame = frame.clone(),
-                    _ => ()
+                    _ => (),
                 }
                 let action_state = &action.action.data[1];
                 let loop_count = &action_state.fields[0].value;
                 match loop_count {
                     RSZValue::Int32(count) => self.action_info.loop_count = count.clone(),
-                    _ => ()
+                    _ => (),
                 }
             }
-            None => ()
+            None => (),
         }
     }
-    
+
     fn update_position(&mut self, frame: i32) {
         self.velocity.x += self.acceleration.x;
         self.velocity.y += self.acceleration.y;

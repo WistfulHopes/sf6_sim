@@ -2083,8 +2083,8 @@ dependencies = [
 
 [[package]]
 name = "sf6_rsz_parser"
-version = "0.2.5"
-source = "git+https://github.com/WistfulHopes/sf6_rsz_parser.git#9873c50546fe042ac9f85e3a86b0a6c3b76a4752"
+version = "0.3.0"
+source = "git+https://github.com/WistfulHopes/sf6_rsz_parser.git#b5ac39a2fab759cfba0a86707ec92ffec60001ef"
 dependencies = [
  "indicatif",
  "lazy_static",
