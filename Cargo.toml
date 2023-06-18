@@ -7,12 +7,28 @@ edition = "2021"
 
 [dependencies]
 sf6_rsz_parser = { git = "https://github.com/WistfulHopes/sf6_rsz_parser.git" }
-eframe = "0.22"
-rfd = { git = "https://github.com/PolyMeilex/rfd.git" }
-bitvec = { git = "https://github.com/ferrilab/bitvec.git" }
+eframe = { version = "0.22.0", default-features = false, features = [
+    "default_fonts", # Embed the default egui fonts.
+    "glow",          # Use the glow rendering backend. Alternative: "wgpu".
+    "persistence",   # Enable restoring app state when restarting the app.
+] }
+
+# You only need serde if you want app persistence:
+serde = { version = "1", features = ["derive"] }
+
+bitvec = "1"
 bitflags = "2.3.2"
 num = "0.4"
 num-derive = "0.3"
 num-traits = "0.2"
 strum = "0.24"
 strum_macros = "0.24"
+log = "0.4"
+include-bytes-zstd = "0.1.0"
+
+# web:
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen-futures = "0.4"
+
+[profile.release]
+opt-level = 2 # fast and small wasm
