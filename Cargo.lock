@@ -1438,7 +1438,7 @@ dependencies = [
 
 [[package]]
 name = "sf6_sim"
-version = "0.2.2"
+version = "0.3.0"
 dependencies = [
  "bitflags 2.3.2",
  "bitvec",
@@ -1448,7 +1448,6 @@ dependencies = [
  "num",
  "num-derive",
  "num-traits",
- "serde",
  "sf6_rsz_parser",
  "strum",
  "strum_macros",

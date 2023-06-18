@@ -132,6 +132,7 @@ pub struct Viewer {
     pub character: Character,
     selected_index: i32,
     action_index: i32,
+    action_index_string: String,
     current_frame: usize,
     action_info: ActionInfo,
     push_collision_keys: Vec<PushCollisionKey>,
@@ -158,6 +159,7 @@ impl Default for Viewer {
             character: Character::Common,
             selected_index: -1,
             action_index: 0,
+            action_index_string: "".to_string(),
             current_frame: 0,
             action_info: Default::default(),
             push_collision_keys: vec![],
@@ -171,8 +173,8 @@ impl Default for Viewer {
             prev_velocity: Default::default(),
             prev_acceleration: Default::default(),
             root_motion: Default::default(),
-            offset_x: 640.0,
-            offset_y: 360.0,
+            offset_x: 90.0,
+            offset_y: 300.0,
             last_cursor_pos: Default::default(),
             should_update: false,
         }
@@ -439,11 +441,40 @@ impl Viewer {
                             self.action_index = action_index.clone();
                             self.should_update = true;
                             self.current_frame = 1;
+                            self.action_index_string = "".to_string();
                         }
                     }
                 }
                 None => (),
             });
+        ui.label("Search by action index");
+        let textedit_response = ui.add(egui::TextEdit::singleline(&mut self.action_index_string));
+        if textedit_response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+            match &self.asset {
+                Some(fchar) => {
+                    for (index, action) in fchar.action_list.iter().enumerate() {
+                        let action_index = action.info.action_data.action_id.clone();
+                        if self.action_index_string != "" {
+                            let action_string = self.action_index_string.parse::<i32>();
+                            match action_string {
+                                Ok(parsed_action_index) => {
+                                    if parsed_action_index == action_index {
+                                        self.selected_index = index as i32;
+                                        self.action_index = action_index.clone();
+                                        self.should_update = true;
+                                        self.current_frame = 1;
+                                    }
+                                }
+                                Err(_) => ()
+                            }
+                        }
+                    }
+                }
+                None => (),
+            }
+            self.action_index_string = "".to_string();
+        }
+
         if self.selected_index != -1 {
             if self.should_update {
                 self.action_info = Default::default();
@@ -1264,8 +1295,8 @@ impl Viewer {
             self.last_cursor_pos = Default::default();
         }
         if response.clicked_by(egui::PointerButton::Secondary) {
-            self.offset_x = 640.0;
-            self.offset_y = 360.0;
+            self.offset_x = 90.0;
+            self.offset_y = 300.0;
         }
         for push_collision_key in &self.push_collision_keys {
             painter.rect(

@@ -1,6 +1,6 @@
 [package]
 name = "sf6_sim"
-version = "0.2.2"
+version = "0.3.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -12,9 +12,6 @@ eframe = { version = "0.22.0", default-features = false, features = [
     "glow",          # Use the glow rendering backend. Alternative: "wgpu".
     "persistence",   # Enable restoring app state when restarting the app.
 ] }
-
-# You only need serde if you want app persistence:
-serde = { version = "1", features = ["derive"] }
 
 bitvec = "1"
 bitflags = "2.3.2"
