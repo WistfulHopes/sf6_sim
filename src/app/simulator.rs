@@ -10,7 +10,7 @@ use num_derive::FromPrimitive;
 use sf6_rsz_parser::fchar::{CharacterAsset, DataId};
 use sf6_rsz_parser::parse_fchar;
 use sf6_rsz_parser::rsz::json_parser::parse_json;
-use sf6_rsz_parser::rsz::RSZValue;
+use sf6_rsz_parser::rsz::{Float3, RSZValue};
 
 #[derive(Default)]
 pub enum Character {
@@ -127,6 +127,32 @@ struct ActionInfo {
     loop_count: i32,
 }
 
+struct ProjectileKey {
+    operation: u8,
+    style: i32,
+    action_id: i32,
+    pos_offset: Float3,
+    scatter_offset: Float3,
+    rotate_offset: Float3,
+    projectile_type: u8,
+    spawn_flag: u32,
+}
+
+impl Default for ProjectileKey {
+    fn default() -> Self {
+        Self {
+            operation: 0,
+            style: 0,
+            action_id: 0,
+            pos_offset: Float3 { x: 0f32, y: 0f32, z: 0f32 },
+            scatter_offset: Float3 { x: 0f32, y: 0f32, z: 0f32 },
+            rotate_offset: Float3 { x: 0f32, y: 0f32, z: 0f32 },
+            projectile_type: 0,
+            spawn_flag: 0,
+        }
+    }
+}
+
 pub struct Viewer {
     pub asset: Option<CharacterAsset>,
     pub character: Character,
@@ -138,6 +164,7 @@ pub struct Viewer {
     push_collision_keys: Vec<PushCollisionKey>,
     damage_collision_keys: Vec<DamageCollisionKey>,
     attack_collision_keys: Vec<AttackCollisionKey>,
+    projectile_keys: Vec<ProjectileKey>,
     triggers: Vec<Trigger>,
     position: Vector3f,
     velocity: Vector3f,
@@ -165,6 +192,7 @@ impl Default for Viewer {
             push_collision_keys: vec![],
             damage_collision_keys: vec![],
             attack_collision_keys: vec![],
+            projectile_keys: vec![],
             triggers: vec![],
             position: Default::default(),
             velocity: Default::default(),
@@ -491,29 +519,42 @@ impl Viewer {
                 }
                 self.get_boxes();
                 self.get_trigger_keys();
+                self.get_projectile_keys();
                 self.should_update = false;
             }
             ui.horizontal(|ui| match &self.asset {
                 Some(fchar) => {
                     let action = &fchar.action_list[self.selected_index.clone() as usize];
                     let temp_frame = self.current_frame;
+                    ui.spacing_mut().slider_width = ui.available_width() - 150f32;
                     ui.add(
                         Slider::new(
                             &mut self.current_frame,
                             1..=action.info.action_data.frames as usize,
                         )
-                        .clamp_to_range(true)
-                        .smart_aim(true)
-                        .orientation(egui::SliderOrientation::Horizontal)
-                        .text("Current Frame"),
+                            .clamp_to_range(true)
+                            .smart_aim(true)
+                            .orientation(egui::SliderOrientation::Horizontal)
+                            .text("Current Frame"),
                     );
+                    if ui.input(|i| i.key_pressed(egui::Key::ArrowLeft)) {
+                        self.current_frame -= 1;
+                        if self.current_frame < 1 {
+                            self.current_frame = 1;
+                        }
+                    }
+                    if ui.input(|i| i.key_pressed(egui::Key::ArrowRight)) {
+                        self.current_frame += 1;
+                        if self.current_frame > action.info.action_data.frames as usize {
+                            self.current_frame = action.info.action_data.frames as usize;
+                        }
+                    }
                     if temp_frame != self.current_frame {
                         self.should_update = true;
                     }
                 }
                 None => (),
-            })
-            .response;
+            });
             egui::ScrollArea::vertical().show(ui, |ui| {
                 Frame::canvas(ui.style()).show(ui, |ui| self.render_boxes(ui));
                 ui.collapsing("Action info", |ui| {
@@ -542,6 +583,25 @@ impl Viewer {
                     }
                     ui.label(loop_count);
                 });
+                
+                if !self.projectile_keys.is_empty() {
+                    ui.collapsing("Projectile info", |ui| {
+                        for (index, projectile) in self.projectile_keys.iter().enumerate() {
+                            ui.collapsing(format!("Projectile #{}", index), |ui| {
+                                ui.horizontal(|ui| {
+                                    ui.label(format!("Style #{}", projectile.style));
+                                });
+                                ui.horizontal(|ui| {
+                                    ui.label(format!("Action {}", self.get_action_name(projectile.action_id)));
+                                });
+                                ui.horizontal(|ui| {
+                                    ui.label(format!("Position offset: X {}, Y {}, Z {}", projectile.pos_offset.x, projectile.pos_offset.y, projectile.pos_offset.z));
+                                });
+                            });
+                        }
+                    });
+                }
+                
                 ui.collapsing("Cancel list", |ui| {
                     for trigger in &self.triggers {
                         ui.horizontal(|ui| {
@@ -625,12 +685,123 @@ impl Viewer {
             ui.horizontal(|ui| {
                 ui.label("");
             })
-            .response
+                .response
         } else {
             ui.horizontal(|ui| {
                 ui.label("Select an action from the action list!");
             })
-            .response
+                .response
+        }
+    }
+
+    fn get_projectile_keys(&mut self)
+    {
+        self.projectile_keys.clear();
+        match &self.asset {
+            Some(fchar) => {
+                let action = &fchar.action_list[self.selected_index.clone() as usize];
+                for object in &action.objects {
+                    for (index, object_index) in object.action.object_table.iter().enumerate() {
+                        if object.info.object_data.key_data[index].key_start_frame <= self.current_frame as i32 - 1
+                            && object.info.object_data.key_data[index].key_end_frame > self.current_frame as i32 - 1
+                        {
+                            let data = &object.action.data[object_index.clone() as usize - 1];
+                            match data.name.as_str() {
+                                "CharacterAsset.ShotKey" => {
+                                    let op_value = &data.fields[0].value;
+                                    let mut operation = 0u8;
+                                    match op_value {
+                                        RSZValue::UInt8(ubyte) => {
+                                            operation = ubyte.clone();
+                                        }
+                                        _ => (),
+                                    }
+                                    let style_value = &data.fields[1].value;
+                                    let mut style = 0i32;
+                                    match style_value
+                                    {
+                                        RSZValue::Int32(int) => {
+                                            style = int.clone();
+                                        }
+                                        _ => (),
+                                    }
+                                    let action_value = &data.fields[2].value;
+                                    let mut action_id = 0i32;
+                                    match action_value
+                                    {
+                                        RSZValue::Int32(int) => {
+                                            action_id = int.clone();
+                                        }
+                                        _ => (),
+                                    }
+                                    let pos_value = &data.fields[4].value;
+                                    let mut pos_offset: Float3 = Float3 { x: 0f32, y: 0f32, z: 0f32 };
+                                    match pos_value
+                                    {
+                                        RSZValue::Float3(float3) => {
+                                            pos_offset.x = float3.x.clone();
+                                            pos_offset.y = float3.y.clone();
+                                            pos_offset.z = float3.z.clone();
+                                        }
+                                        _ => (),
+                                    }
+                                    let scatter_value = &data.fields[5].value;
+                                    let mut scatter_offset: Float3 = Float3 { x: 0f32, y: 0f32, z: 0f32 };
+                                    match scatter_value
+                                    {
+                                        RSZValue::Float3(float3) => {
+                                            scatter_offset.x = float3.x.clone();
+                                            scatter_offset.y = float3.y.clone();
+                                            scatter_offset.z = float3.z.clone();
+                                        }
+                                        _ => (),
+                                    }
+                                    let rotate_value = &data.fields[6].value;
+                                    let mut rotate_offset: Float3 = Float3 { x: 0f32, y: 0f32, z: 0f32 };
+                                    match rotate_value
+                                    {
+                                        RSZValue::Float3(float3) => {
+                                            rotate_offset.x = float3.x.clone();
+                                            rotate_offset.y = float3.y.clone();
+                                            rotate_offset.z = float3.z.clone();
+                                        }
+                                        _ => (),
+                                    }
+                                    let projectile_value = &data.fields[8].value;
+                                    let mut projectile_type = 0u8;
+                                    match projectile_value {
+                                        RSZValue::UInt8(ubyte) => {
+                                            projectile_type = ubyte.clone();
+                                        }
+                                        _ => (),
+                                    }
+                                    let spawn_value = &data.fields[9].value;
+                                    let mut spawn_flag = 0u32;
+                                    match spawn_value {
+                                        RSZValue::UInt32(uint) => {
+                                            spawn_flag = uint.clone();
+                                        }
+                                        _ => (),
+                                    }
+                                    
+                                    self.projectile_keys.push(ProjectileKey {
+                                        operation,
+                                        style,
+                                        action_id,
+                                        pos_offset,
+                                        scatter_offset,
+                                        rotate_offset,
+                                        projectile_type,
+                                        spawn_flag,
+                                    })
+                                }
+                                _ => ()
+                            }
+                        }
+                    }
+                }
+            }
+            None => ()
         }
     }
 
@@ -1316,7 +1487,7 @@ impl Viewer {
                             + self.offset_y.clone()
                             + 0.5
                             - self.position.y
-                            + self.root_motion.y,
+                            - self.root_motion.y,
                     },
                     max: Pos2 {
                         x: push_collision_key.pushbox.x.clone()
@@ -1330,7 +1501,7 @@ impl Viewer {
                             + self.offset_y.clone()
                             - 0.5
                             - self.position.y
-                            + self.root_motion.y,
+                            - self.root_motion.y,
                     },
                 },
                 0.0,
@@ -1355,7 +1526,7 @@ impl Viewer {
                                 + self.offset_y.clone()
                                 + 0.5
                                 - self.position.y
-                                + self.root_motion.y,
+                                - self.root_motion.y,
                         },
                         max: Pos2 {
                             x: hurtbox.x.clone() + hurtbox.width.clone() + self.offset_x.clone()
@@ -1365,7 +1536,7 @@ impl Viewer {
                             y: -hurtbox.y.clone() + hurtbox.height.clone() + self.offset_y.clone()
                                 - 0.5
                                 - self.position.y
-                                + self.root_motion.y,
+                                - self.root_motion.y,
                         },
                     },
                     0.0,
@@ -1419,7 +1590,7 @@ impl Viewer {
                                     + self.offset_y.clone()
                                     + 0.5
                                     - self.position.y
-                                    + self.root_motion.y,
+                                    - self.root_motion.y,
                             },
                             max: Pos2 {
                                 x: hitbox.x.clone() + hitbox.width.clone() + self.offset_x.clone()
@@ -1431,7 +1602,7 @@ impl Viewer {
                                     + self.offset_y.clone()
                                     - 0.5
                                     - self.position.y
-                                    + self.root_motion.y,
+                                    - self.root_motion.y,
                             },
                         },
                         0.0,
