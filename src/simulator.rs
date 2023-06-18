@@ -259,149 +259,172 @@ impl Viewer {
             Err(_) => false,
         }
     }
-    
-    fn get_action_name(&self, action_index: i32) -> String
-    {
+
+    fn get_action_name(&self, action_index: i32) -> String {
         match self.character {
             Character::Common => {
-                let action_name: action_names::CommonActions = num::FromPrimitive::from_i32(action_index).unwrap_or_default();
+                let action_name: action_names::CommonActions =
+                    num::FromPrimitive::from_i32(action_index).unwrap_or_default();
                 match action_name {
                     action_names::CommonActions::Common_INVALID_ID => format!("{}", action_index),
-                    _ => action_name.to_string()
+                    _ => action_name.to_string(),
                 }
             }
             Character::Ryu => {
-                let action_name: action_names::RyuActions = num::FromPrimitive::from_i32(action_index).unwrap_or_default();
+                let action_name: action_names::RyuActions =
+                    num::FromPrimitive::from_i32(action_index).unwrap_or_default();
                 match action_name {
                     action_names::RyuActions::Ryu_INVALID_ID => format!("{}", action_index),
-                    _ => action_name.to_string()
+                    _ => action_name.to_string(),
                 }
             }
             Character::Luke => {
-                let action_name: action_names::LukeActions = num::FromPrimitive::from_i32(action_index).unwrap_or_default();
+                let action_name: action_names::LukeActions =
+                    num::FromPrimitive::from_i32(action_index).unwrap_or_default();
                 match action_name {
                     action_names::LukeActions::Luke_INVALID_ID => format!("{}", action_index),
-                    _ => action_name.to_string()
+                    _ => action_name.to_string(),
                 }
             }
             Character::Kimberly => {
-                let action_name: action_names::KimberlyActions = num::FromPrimitive::from_i32(action_index).unwrap_or_default();
+                let action_name: action_names::KimberlyActions =
+                    num::FromPrimitive::from_i32(action_index).unwrap_or_default();
                 match action_name {
-                    action_names::KimberlyActions::Kimberly_INVALID_ID => format!("{}", action_index),
-                    _ => action_name.to_string()
+                    action_names::KimberlyActions::Kimberly_INVALID_ID => {
+                        format!("{}", action_index)
+                    }
+                    _ => action_name.to_string(),
                 }
             }
             Character::ChunLi => {
-                let action_name: action_names::ChunLiActions = num::FromPrimitive::from_i32(action_index).unwrap_or_default();
+                let action_name: action_names::ChunLiActions =
+                    num::FromPrimitive::from_i32(action_index).unwrap_or_default();
                 match action_name {
                     action_names::ChunLiActions::ChunLi_INVALID_ID => format!("{}", action_index),
-                    _ => action_name.to_string()
+                    _ => action_name.to_string(),
                 }
             }
             Character::Manon => {
-                let action_name: action_names::ManonActions = num::FromPrimitive::from_i32(action_index).unwrap_or_default();
+                let action_name: action_names::ManonActions =
+                    num::FromPrimitive::from_i32(action_index).unwrap_or_default();
                 match action_name {
                     action_names::ManonActions::Manon_INVALID_ID => format!("{}", action_index),
-                    _ => action_name.to_string()
+                    _ => action_name.to_string(),
                 }
             }
             Character::Zangief => {
-                let action_name: action_names::ZangiefActions = num::FromPrimitive::from_i32(action_index).unwrap_or_default();
+                let action_name: action_names::ZangiefActions =
+                    num::FromPrimitive::from_i32(action_index).unwrap_or_default();
                 match action_name {
                     action_names::ZangiefActions::Zangief_INVALID_ID => format!("{}", action_index),
-                    _ => action_name.to_string()
+                    _ => action_name.to_string(),
                 }
             }
             Character::JP => {
-                let action_name: action_names::JPActions = num::FromPrimitive::from_i32(action_index).unwrap_or_default();
+                let action_name: action_names::JPActions =
+                    num::FromPrimitive::from_i32(action_index).unwrap_or_default();
                 match action_name {
                     action_names::JPActions::JP_INVALID_ID => format!("{}", action_index),
-                    _ => action_name.to_string()
+                    _ => action_name.to_string(),
                 }
             }
             Character::Dhalsim => {
-                let action_name: action_names::DhalsimActions = num::FromPrimitive::from_i32(action_index).unwrap_or_default();
+                let action_name: action_names::DhalsimActions =
+                    num::FromPrimitive::from_i32(action_index).unwrap_or_default();
                 match action_name {
                     action_names::DhalsimActions::Dhalsim_INVALID_ID => format!("{}", action_index),
-                    _ => action_name.to_string()
+                    _ => action_name.to_string(),
                 }
             }
             Character::Cammy => {
-                let action_name: action_names::CammyActions = num::FromPrimitive::from_i32(action_index).unwrap_or_default();
+                let action_name: action_names::CammyActions =
+                    num::FromPrimitive::from_i32(action_index).unwrap_or_default();
                 match action_name {
                     action_names::CammyActions::Cammy_INVALID_ID => format!("{}", action_index),
-                    _ => action_name.to_string()
+                    _ => action_name.to_string(),
                 }
             }
             Character::Ken => {
-                let action_name: action_names::KenActions = num::FromPrimitive::from_i32(action_index).unwrap_or_default();
+                let action_name: action_names::KenActions =
+                    num::FromPrimitive::from_i32(action_index).unwrap_or_default();
                 match action_name {
                     action_names::KenActions::Ken_INVALID_ID => format!("{}", action_index),
-                    _ => action_name.to_string()
+                    _ => action_name.to_string(),
                 }
             }
             Character::DeeJay => {
-                let action_name: action_names::DeeJayActions = num::FromPrimitive::from_i32(action_index).unwrap_or_default();
+                let action_name: action_names::DeeJayActions =
+                    num::FromPrimitive::from_i32(action_index).unwrap_or_default();
                 match action_name {
                     action_names::DeeJayActions::DeeJay_INVALID_ID => format!("{}", action_index),
-                    _ => action_name.to_string()
+                    _ => action_name.to_string(),
                 }
             }
             Character::Lily => {
-                let action_name: action_names::LilyActions = num::FromPrimitive::from_i32(action_index).unwrap_or_default();
+                let action_name: action_names::LilyActions =
+                    num::FromPrimitive::from_i32(action_index).unwrap_or_default();
                 match action_name {
                     action_names::LilyActions::Lily_INVALID_ID => format!("{}", action_index),
-                    _ => action_name.to_string()
+                    _ => action_name.to_string(),
                 }
             }
             Character::Blanka => {
-                let action_name: action_names::BlankaActions = num::FromPrimitive::from_i32(action_index).unwrap_or_default();
+                let action_name: action_names::BlankaActions =
+                    num::FromPrimitive::from_i32(action_index).unwrap_or_default();
                 match action_name {
                     action_names::BlankaActions::Blanka_INVALID_ID => format!("{}", action_index),
-                    _ => action_name.to_string()
+                    _ => action_name.to_string(),
                 }
             }
             Character::Juri => {
-                let action_name: action_names::JuriActions = num::FromPrimitive::from_i32(action_index).unwrap_or_default();
+                let action_name: action_names::JuriActions =
+                    num::FromPrimitive::from_i32(action_index).unwrap_or_default();
                 match action_name {
                     action_names::JuriActions::Juri_INVALID_ID => format!("{}", action_index),
-                    _ => action_name.to_string()
+                    _ => action_name.to_string(),
                 }
             }
             Character::Marisa => {
-                let action_name: action_names::MarisaActions = num::FromPrimitive::from_i32(action_index).unwrap_or_default();
+                let action_name: action_names::MarisaActions =
+                    num::FromPrimitive::from_i32(action_index).unwrap_or_default();
                 match action_name {
                     action_names::MarisaActions::Marisa_INVALID_ID => format!("{}", action_index),
-                    _ => action_name.to_string()
+                    _ => action_name.to_string(),
                 }
             }
             Character::Guile => {
-                let action_name: action_names::GuileActions = num::FromPrimitive::from_i32(action_index).unwrap_or_default();
+                let action_name: action_names::GuileActions =
+                    num::FromPrimitive::from_i32(action_index).unwrap_or_default();
                 match action_name {
                     action_names::GuileActions::Guile_INVALID_ID => format!("{}", action_index),
-                    _ => action_name.to_string()
+                    _ => action_name.to_string(),
                 }
             }
             Character::EHonda => {
-                let action_name: action_names::EHondaActions = num::FromPrimitive::from_i32(action_index).unwrap_or_default();
+                let action_name: action_names::EHondaActions =
+                    num::FromPrimitive::from_i32(action_index).unwrap_or_default();
                 match action_name {
                     action_names::EHondaActions::EHonda_INVALID_ID => format!("{}", action_index),
-                    _ => action_name.to_string()
+                    _ => action_name.to_string(),
                 }
             }
             Character::Jamie => {
-                let action_name: action_names::JamieActions = num::FromPrimitive::from_i32(action_index).unwrap_or_default();
+                let action_name: action_names::JamieActions =
+                    num::FromPrimitive::from_i32(action_index).unwrap_or_default();
                 match action_name {
                     action_names::JamieActions::Jamie_INVALID_ID => format!("{}", action_index),
-                    _ => action_name.to_string()
+                    _ => action_name.to_string(),
                 }
             }
         }
     }
-    
+
     pub fn ui(&mut self, ui: &mut egui::Ui) -> egui::Response {
-        let mut action_label: String =
-            format!("Action #{}: {}", self.selected_index, self.get_action_name(self.action_index));
+        let mut action_label: String = format!(
+            "Action #{}: {}",
+            self.selected_index,
+            self.get_action_name(self.action_index)
+        );
         if self.selected_index == -1 {
             action_label = "Select an action".to_owned();
         }
@@ -413,7 +436,14 @@ impl Viewer {
                     for (index, action) in fchar.action_list.iter().enumerate() {
                         let action_index = &action.info.action_data.action_id;
                         if ui
-                            .selectable_label(true, format!("Action #{}: {}", index, self.get_action_name(action_index.clone())))
+                            .selectable_label(
+                                true,
+                                format!(
+                                    "Action #{}: {}",
+                                    index,
+                                    self.get_action_name(action_index.clone())
+                                ),
+                            )
                             .clicked()
                         {
                             self.selected_index = index as i32;
@@ -482,7 +512,7 @@ impl Viewer {
                     }
                     ui.label(recovery_frame);
                     ui.label(format!(
-                        "Actionable frame: {}",
+                        "First actionable frame: {}",
                         self.action_info.end_frame + 1
                     ));
                     let mut loop_count: String =
@@ -1387,6 +1417,35 @@ impl Viewer {
                 }
             }
         }
+        let mut visuals = ui.ctx().style().visuals.clone();
+        if visuals.dark_mode {
+            painter.circle(
+                Pos2 {
+                    x: self.position.x + self.offset_x.clone(),
+                    y: -self.position.y + self.offset_y.clone(),
+                },
+                5f32,
+                Color32::GRAY,
+                Stroke {
+                    width: 1.0,
+                    color: Color32::WHITE,
+                },
+            );
+        } else {
+            painter.circle(
+                Pos2 {
+                    x: self.position.x + self.offset_x.clone(),
+                    y: -self.position.y + self.offset_y.clone(),
+                },
+                5f32,
+                Color32::GRAY,
+                Stroke {
+                    width: 1.0,
+                    color: Color32::BLACK,
+                },
+            );
+        }
+
         response
     }
 }

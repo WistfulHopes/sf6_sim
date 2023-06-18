@@ -1,4 +1,4 @@
-﻿use num_derive::FromPrimitive;
+use num_derive::FromPrimitive;
 
 #[allow(non_camel_case_types)]
 #[derive(Default, strum_macros::Display, FromPrimitive, PartialEq, Eq, Clone)]
