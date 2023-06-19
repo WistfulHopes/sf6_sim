@@ -458,9 +458,10 @@ impl Viewer {
                             .selectable_label(
                                 true,
                                 format!(
-                                    "Action #{}: {}",
+                                    "Action #{}: {}, Index {}",
                                     index,
-                                    self.get_action_name(action_index.clone())
+                                    self.get_action_name(action_index.clone()),
+                                    action_index,
                                 ),
                             )
                             .clicked()
