@@ -1024,7 +1024,7 @@ impl Viewer {
             self.root_motion.y = 0f32;
         }
         
-        if frame == self.action_info.recovery_frame
+        if frame == self.action_info.end_frame
         {
             self.velocity.x = 0f32;
             self.velocity.y = 0f32;
