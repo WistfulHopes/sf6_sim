@@ -244,12 +244,12 @@ fn steer_key_to_value(
             }
         }
         SteerOperationType::SetMinimum => {
-            if value > modify_value {
+            if value < modify_value {
                 value = modify_value;
             }
         }
         SteerOperationType::SetMaximum => {
-            if value < modify_value {
+            if value > modify_value {
                 value = modify_value;
             }
         }
@@ -838,12 +838,13 @@ impl Viewer {
     }
 
     fn update_position(&mut self, frame: i32) {
-        self.velocity.x += self.acceleration.x;
-        self.velocity.y += self.acceleration.y;
-        self.velocity.z += self.acceleration.z;
         self.position.x += self.velocity.x;
         self.position.y += self.velocity.y;
         self.position.z += self.velocity.z;
+        self.velocity.x += self.acceleration.x;
+        self.velocity.y += self.acceleration.y;
+        self.velocity.z += self.acceleration.z;
+
         match &self.asset {
             Some(fchar) => {
                 let action = &fchar.action_list[self.selected_index.clone() as usize];
@@ -1012,11 +1013,25 @@ impl Viewer {
 
         if self.position.y < 0f32 {
             self.position.y = 0f32;
+            self.velocity.x = 0f32;
             self.velocity.y = 0f32;
+            self.velocity.z = 0f32;
+            self.acceleration.x = 0f32;
             self.acceleration.y = 0f32;
+            self.acceleration.z = 0f32;
         }
         if self.root_motion.y < 0f32 {
             self.root_motion.y = 0f32;
+        }
+        
+        if frame >= self.action_info.recovery_frame
+        {
+            self.velocity.x = 0f32;
+            self.velocity.y = 0f32;
+            self.velocity.z = 0f32;
+            self.acceleration.x = 0f32;
+            self.acceleration.y = -1.17;
+            self.acceleration.z = 0f32;
         }
     }
 
