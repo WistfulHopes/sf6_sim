@@ -558,6 +558,23 @@ impl Viewer {
             });
             egui::ScrollArea::vertical().show(ui, |ui| {
                 Frame::canvas(ui.style()).show(ui, |ui| self.render_boxes(ui));
+                ui.collapsing("Motion info", |ui| {
+                    let mut position: String = format!(
+                        "Current Position: {}, {}",
+                        self.position.x,self.position.y
+                    );
+                    ui.label(position);
+                    let mut velocity: String = format!(
+                        "Current Velocity: {}, {}",
+                        self.velocity.x,self.velocity.y
+                    );
+                    ui.label(velocity);
+                    let mut acceleration: String = format!(
+                        "Current Acceleration: {}, {}",
+                        self.acceleration.x,self.acceleration.y
+                    );
+                    ui.label(acceleration);
+                });
                 ui.collapsing("Action info", |ui| {
                     let mut first_active_frame: String = format!(
                         "First active frame: {}",
