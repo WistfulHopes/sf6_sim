@@ -25,6 +25,15 @@ impl SF6Simulator {
 
 impl eframe::App for SF6Simulator {
     fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
+        egui::SidePanel::right("Motion Info")
+            .resizable(true)
+            .default_width(400.0)
+            .width_range(120.0..=1000.0)
+            .show(ctx,|ui| {
+                if self.viewer.asset.is_some() {
+                    self.viewer.right_panel(ui);
+                }
+            });
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.horizontal(|ui| {
                 ComboBox::from_label("Character List")

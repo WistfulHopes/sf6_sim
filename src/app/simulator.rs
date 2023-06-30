@@ -159,6 +159,7 @@ pub struct Viewer {
     selected_index: i32,
     action_index: i32,
     action_index_string: String,
+    action_name_filter_string: String,
     current_frame: usize,
     action_info: ActionInfo,
     push_collision_keys: Vec<PushCollisionKey>,
@@ -187,6 +188,7 @@ impl Default for Viewer {
             selected_index: -1,
             action_index: 0,
             action_index_string: "".to_string(),
+            action_name_filter_string: "".to_string(),
             current_frame: 0,
             action_info: Default::default(),
             push_collision_keys: vec![],
@@ -438,126 +440,11 @@ impl Viewer {
         }
     }
 
-    pub fn ui(&mut self, ui: &mut egui::Ui) -> egui::Response {
-        let mut action_label: String = format!(
-            "Action #{}: {}",
-            self.selected_index,
-            self.get_action_name(self.action_index)
-        );
-        if self.selected_index == -1 {
-            action_label = "Select an action".to_owned();
-        }
-        ComboBox::from_label("Action List")
-            .selected_text(action_label)
-            .width(300.0)
-            .show_ui(ui, |ui| match &self.asset {
-                Some(fchar) => {
-                    for (index, action) in fchar.action_list.iter().enumerate() {
-                        let action_index = &action.info.action_data.action_id;
-                        if ui
-                            .selectable_label(
-                                true,
-                                format!(
-                                    "Action #{}: {}, Index {}",
-                                    index,
-                                    self.get_action_name(action_index.clone()),
-                                    action_index,
-                                ),
-                            )
-                            .clicked()
-                        {
-                            self.selected_index = index as i32;
-                            self.action_index = action_index.clone();
-                            self.should_update = true;
-                            self.current_frame = 1;
-                            self.action_index_string = "".to_string();
-                        }
-                    }
-                }
-                None => (),
-            });
-        ui.label("Search by action index");
-        let textedit_response = ui.add(egui::TextEdit::singleline(&mut self.action_index_string));
-        if textedit_response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
-            match &self.asset {
-                Some(fchar) => {
-                    for (index, action) in fchar.action_list.iter().enumerate() {
-                        let action_index = action.info.action_data.action_id.clone();
-                        if self.action_index_string != "" {
-                            let action_string = self.action_index_string.parse::<i32>();
-                            match action_string {
-                                Ok(parsed_action_index) => {
-                                    if parsed_action_index == action_index {
-                                        self.selected_index = index as i32;
-                                        self.action_index = action_index.clone();
-                                        self.should_update = true;
-                                        self.current_frame = 1;
-                                    }
-                                }
-                                Err(_) => (),
-                            }
-                        }
-                    }
-                }
-                None => (),
-            }
-            self.action_index_string = "".to_string();
-        }
-
+    pub fn right_panel(&mut self, ui: &mut egui::Ui) -> egui::Response {
         if self.selected_index != -1 {
-            if self.should_update {
-                self.action_info = Default::default();
-                self.get_action_info();
-                self.position = Default::default();
-                self.velocity = Default::default();
-                self.acceleration = Default::default();
-                self.prev_position = Default::default();
-                self.prev_velocity = Default::default();
-                self.prev_acceleration = Default::default();
-                self.root_motion = Default::default();
-                for frame in 0..self.current_frame - 1 {
-                    self.update_position(frame as i32);
-                }
-                self.get_boxes();
-                self.get_trigger_keys();
-                self.get_projectile_keys();
-                self.should_update = false;
-            }
-            ui.horizontal(|ui| match &self.asset {
-                Some(fchar) => {
-                    let action = &fchar.action_list[self.selected_index.clone() as usize];
-                    let temp_frame = self.current_frame;
-                    ui.spacing_mut().slider_width = ui.available_width() - 150f32;
-                    ui.add(
-                        Slider::new(
-                            &mut self.current_frame,
-                            1..=action.info.action_data.frames as usize,
-                        )
-                            .clamp_to_range(true)
-                            .smart_aim(true)
-                            .orientation(egui::SliderOrientation::Horizontal)
-                            .text("Current Frame"),
-                    );
-                    if ui.input(|i| i.key_pressed(egui::Key::ArrowLeft)) {
-                        self.current_frame -= 1;
-                        if self.current_frame < 1 {
-                            self.current_frame = 1;
-                        }
-                    }
-                    if ui.input(|i| i.key_pressed(egui::Key::ArrowRight)) {
-                        self.current_frame += 1;
-                        if self.current_frame > action.info.action_data.frames as usize {
-                            self.current_frame = action.info.action_data.frames as usize;
-                        }
-                    }
-                    if temp_frame != self.current_frame {
-                        self.should_update = true;
-                    }
-                }
-                None => (),
-            });
-            egui::ScrollArea::vertical().show(ui, |ui| {
-                Frame::canvas(ui.style()).show(ui, |ui| self.render_boxes(ui));
+            egui::ScrollArea::vertical()
+            .auto_shrink([false,false])
+            .show(ui, |ui| {
                 ui.collapsing("Motion info", |ui| {
                     let mut position: String = format!(
                         "Current Position: {}, {}",
@@ -698,6 +585,145 @@ impl Viewer {
                         });
                     }
                 });
+            });
+
+            ui.horizontal(|ui| {
+                ui.label("");
+            })
+                .response
+        } else {
+            ui.horizontal(|ui| {
+            })
+                .response
+        }
+    }
+
+    pub fn ui(&mut self, ui: &mut egui::Ui) -> egui::Response {
+        let mut action_label: String = format!(
+            "Action #{}: {}",
+            self.selected_index,
+            self.get_action_name(self.action_index)
+        );
+        if self.selected_index == -1 {
+            action_label = "Select an action".to_owned();
+        }
+        ui.label("Filter by name");
+        let textedit_response = ui.add(egui::TextEdit::singleline(&mut self.action_name_filter_string));
+        self.action_name_filter_string = self.action_name_filter_string.to_lowercase();
+        ComboBox::from_label("Action List")
+            .selected_text(action_label)
+            .width(300.0)
+            .show_ui(ui, |ui| match &self.asset {
+                Some(fchar) => {
+                    for (index, action) in fchar.action_list.iter().enumerate() {
+                        let action_index = &action.info.action_data.action_id;
+                        let filter_string = &self.action_name_filter_string;
+                        if filter_string.is_empty()|| self.get_action_name(*action_index).to_lowercase().contains(filter_string){
+                            if ui 
+                                .selectable_label(
+                                    true,
+                                    format!(
+                                        "Action #{}: {}, Index {}",
+                                        index,
+                                        self.get_action_name(action_index.clone()),
+                                        action_index,
+                                    ),
+                                )
+                                .clicked()
+                            {
+                                self.selected_index = index as i32;
+                                self.action_index = action_index.clone();
+                                self.should_update = true;
+                                self.current_frame = 1;
+                                self.action_index_string = "".to_string();
+                            }
+                        }
+                    }
+                }
+                None => (),
+            });
+        ui.label("Search by action index");
+        let textedit_response = ui.add(egui::TextEdit::singleline(&mut self.action_index_string));
+        if textedit_response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+            match &self.asset {
+                Some(fchar) => {
+                    for (index, action) in fchar.action_list.iter().enumerate() {
+                        let action_index = action.info.action_data.action_id.clone();
+                        if self.action_index_string != "" {
+                            let action_string = self.action_index_string.parse::<i32>();
+                            match action_string {
+                                Ok(parsed_action_index) => {
+                                    if parsed_action_index == action_index {
+                                        self.selected_index = index as i32;
+                                        self.action_index = action_index.clone();
+                                        self.should_update = true;
+                                        self.current_frame = 1;
+                                    }
+                                }
+                                Err(_) => (),
+                            }
+                        }
+                    }
+                }
+                None => (),
+            }
+            self.action_index_string = "".to_string();
+        }
+
+        if self.selected_index != -1 {
+            if self.should_update {
+                self.action_info = Default::default();
+                self.get_action_info();
+                self.position = Default::default();
+                self.velocity = Default::default();
+                self.acceleration = Default::default();
+                self.prev_position = Default::default();
+                self.prev_velocity = Default::default();
+                self.prev_acceleration = Default::default();
+                self.root_motion = Default::default();
+                for frame in 0..self.current_frame - 1 {
+                    self.update_position(frame as i32);
+                }
+                self.get_boxes();
+                self.get_trigger_keys();
+                self.get_projectile_keys();
+                self.should_update = false;
+            }
+            ui.horizontal(|ui| match &self.asset {
+                Some(fchar) => {
+                    let action = &fchar.action_list[self.selected_index.clone() as usize];
+                    let temp_frame = self.current_frame;
+                    ui.spacing_mut().slider_width = ui.available_width() - 150f32;
+                    ui.add(
+                        Slider::new(
+                            &mut self.current_frame,
+                            1..=action.info.action_data.frames as usize,
+                        )
+                            .clamp_to_range(true)
+                            .smart_aim(true)
+                            .orientation(egui::SliderOrientation::Horizontal)
+                            .text("Current Frame"),
+                    );
+                    if ui.input(|i| i.key_pressed(egui::Key::ArrowLeft)) {
+                        self.current_frame -= 1;
+                        if self.current_frame < 1 {
+                            self.current_frame = 1;
+                        }
+                    }
+                    if ui.input(|i| i.key_pressed(egui::Key::ArrowRight)) {
+                        self.current_frame += 1;
+                        if self.current_frame > action.info.action_data.frames as usize {
+                            self.current_frame = action.info.action_data.frames as usize;
+                        }
+                    }
+                    if temp_frame != self.current_frame {
+                        self.should_update = true;
+                    }
+                }
+                None => (),
+            });
+            egui::ScrollArea::vertical().show(ui, |ui| {
+                Frame::canvas(ui.style()).show(ui, |ui| self.render_boxes(ui));
             });
 
             ui.horizontal(|ui| {
