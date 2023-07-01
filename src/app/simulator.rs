@@ -280,7 +280,23 @@ impl Viewer {
             Err(_) => false,
         }
     }
-
+    fn update_action(&mut self,new_action_index:i32){
+        match &self.asset {
+            Some(fchar) => {
+                for (index, action) in fchar.action_list.iter().enumerate() {
+                    let action_index = action.info.action_data.action_id.clone();
+                        if new_action_index == action_index {
+                            self.selected_index = index as i32;
+                            self.action_index = action_index.clone();
+                            self.should_update = true;
+                            self.current_frame = 1;
+                        }
+                    }
+            }
+            None => (),
+        }
+    }
+    
     fn get_action_name(&self, action_index: i32) -> String {
         match self.character {
             Character::Common => {
@@ -490,6 +506,8 @@ impl Viewer {
                 });
                 
                 if !self.projectile_keys.is_empty() {
+                    let mut clicked = false;
+                    let mut action_id = -1;
                     ui.collapsing("Projectile info", |ui| {
                         for (index, projectile) in self.projectile_keys.iter().enumerate() {
                             ui.collapsing(format!("Projectile #{}", index), |ui| {
@@ -497,20 +515,32 @@ impl Viewer {
                                     ui.label(format!("Style #{}", projectile.style));
                                 });
                                 ui.horizontal(|ui| {
-                                    ui.label(format!("Action {}", self.get_action_name(projectile.action_id)));
+                                    if ui.link(format!("Action {}", self.get_action_name(projectile.action_id))).clicked(){
+                                        clicked = true;
+                                        action_id = projectile.action_id.clone();
+                                    }
                                 });
                                 ui.horizontal(|ui| {
                                     ui.label(format!("Position offset: X {}, Y {}, Z {}", projectile.pos_offset.x, projectile.pos_offset.y, projectile.pos_offset.z));
                                 });
                             });
                         }
+                        if clicked {
+                            self.update_action(action_id);
+                        }
                     });
                 }
                 
                 ui.collapsing("Cancel list", |ui| {
+                    let mut clicked = false;
+                    let mut action_id = -1;
                     for trigger in &self.triggers {
                         ui.horizontal(|ui| {
-                            ui.label(format!("Action {}", self.get_action_name(trigger.action)));
+                            if ui.link(format!("Action {}", self.get_action_name(trigger.action))).clicked()
+                            {
+                                clicked = true;
+                                action_id = trigger.action.clone();
+                            };
                             let mut cancel_flags: String = "".to_owned();
                             if trigger.condition_flag & 0b1 > 0 {
                                 cancel_flags.push_str("Hit | ")
@@ -584,6 +614,9 @@ impl Viewer {
                             ui.label(format!("Cancel flags: {}", cancel_flags));
                         });
                     }
+                    if clicked {
+                        self.update_action(action_id);
+                    }
                 });
             });
 
@@ -645,27 +678,14 @@ impl Viewer {
         ui.label("Search by action index");
         let textedit_response = ui.add(egui::TextEdit::singleline(&mut self.action_index_string));
         if textedit_response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
-            match &self.asset {
-                Some(fchar) => {
-                    for (index, action) in fchar.action_list.iter().enumerate() {
-                        let action_index = action.info.action_data.action_id.clone();
-                        if self.action_index_string != "" {
-                            let action_string = self.action_index_string.parse::<i32>();
-                            match action_string {
-                                Ok(parsed_action_index) => {
-                                    if parsed_action_index == action_index {
-                                        self.selected_index = index as i32;
-                                        self.action_index = action_index.clone();
-                                        self.should_update = true;
-                                        self.current_frame = 1;
-                                    }
-                                }
-                                Err(_) => (),
-                            }
-                        }
-                    }
+            if self.action_index_string != "" {
+                let action_string = self.action_index_string.parse::<i32>();
+                match action_string {
+                    Ok(parsed_action_index)=>{
+                        self.update_action(parsed_action_index);
+                    },
+                    Err(_)=>(),
                 }
-                None => (),
             }
             self.action_index_string = "".to_string();
         }
