@@ -29,7 +29,7 @@ impl eframe::App for SF6Simulator {
             .resizable(true)
             .default_width(400.0)
             .width_range(120.0..=1000.0)
-            .show(ctx,|ui| {
+            .show(ctx, |ui| {
                 if self.viewer.asset.is_some() {
                     self.viewer.right_panel(ui);
                 }

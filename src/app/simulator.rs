@@ -144,9 +144,21 @@ impl Default for ProjectileKey {
             operation: 0,
             style: 0,
             action_id: 0,
-            pos_offset: Float3 { x: 0f32, y: 0f32, z: 0f32 },
-            scatter_offset: Float3 { x: 0f32, y: 0f32, z: 0f32 },
-            rotate_offset: Float3 { x: 0f32, y: 0f32, z: 0f32 },
+            pos_offset: Float3 {
+                x: 0f32,
+                y: 0f32,
+                z: 0f32,
+            },
+            scatter_offset: Float3 {
+                x: 0f32,
+                y: 0f32,
+                z: 0f32,
+            },
+            rotate_offset: Float3 {
+                x: 0f32,
+                y: 0f32,
+                z: 0f32,
+            },
             projectile_type: 0,
             spawn_flag: 0,
         }
@@ -280,23 +292,23 @@ impl Viewer {
             Err(_) => false,
         }
     }
-    fn update_action(&mut self,new_action_index:i32){
+    fn update_action(&mut self, new_action_index: i32) {
         match &self.asset {
             Some(fchar) => {
                 for (index, action) in fchar.action_list.iter().enumerate() {
                     let action_index = action.info.action_data.action_id.clone();
-                        if new_action_index == action_index {
-                            self.selected_index = index as i32;
-                            self.action_index = action_index.clone();
-                            self.should_update = true;
-                            self.current_frame = 1;
-                        }
+                    if new_action_index == action_index {
+                        self.selected_index = index as i32;
+                        self.action_index = action_index.clone();
+                        self.should_update = true;
+                        self.current_frame = 1;
                     }
+                }
             }
             None => (),
         }
     }
-    
+
     fn get_action_name(&self, action_index: i32) -> String {
         match self.character {
             Character::Common => {
@@ -459,175 +471,187 @@ impl Viewer {
     pub fn right_panel(&mut self, ui: &mut egui::Ui) -> egui::Response {
         if self.selected_index != -1 {
             egui::ScrollArea::vertical()
-            .auto_shrink([false,false])
-            .show(ui, |ui| {
-                ui.collapsing("Motion info", |ui| {
-                    let mut position: String = format!(
-                        "Current Position: {}, {}",
-                        self.position.x,self.position.y
-                    );
-                    ui.label(position);
-                    let mut velocity: String = format!(
-                        "Current Velocity: {}, {}",
-                        self.velocity.x,self.velocity.y
-                    );
-                    ui.label(velocity);
-                    let mut acceleration: String = format!(
-                        "Current Acceleration: {}, {}",
-                        self.acceleration.x,self.acceleration.y
-                    );
-                    ui.label(acceleration);
-                });
-                ui.collapsing("Action info", |ui| {
-                    let mut first_active_frame: String = format!(
-                        "First active frame: {}",
-                        self.action_info.first_active_frame + 1
-                    );
-                    if self.action_info.first_active_frame == -1 {
-                        first_active_frame = "First active frame: N/A".to_owned();
-                    }
-                    ui.label(first_active_frame);
-                    let mut recovery_frame: String =
-                        format!("Recovery frame: {}", self.action_info.recovery_frame + 1);
-                    if self.action_info.recovery_frame == -1 {
-                        recovery_frame = "Recovery frame: N/A".to_owned();
-                    }
-                    ui.label(recovery_frame);
-                    ui.label(format!(
-                        "First actionable frame: {}",
-                        self.action_info.end_frame + 1
-                    ));
-                    let mut loop_count: String =
-                        format!("Loop count: {}", self.action_info.loop_count);
-                    if self.action_info.loop_count == -1 {
-                        loop_count = "Loop count: infinite".to_owned();
-                    }
-                    ui.label(loop_count);
-                });
-                
-                if !self.projectile_keys.is_empty() {
-                    let mut clicked = false;
-                    let mut action_id = -1;
-                    ui.collapsing("Projectile info", |ui| {
-                        for (index, projectile) in self.projectile_keys.iter().enumerate() {
-                            ui.collapsing(format!("Projectile #{}", index), |ui| {
-                                ui.horizontal(|ui| {
-                                    ui.label(format!("Style #{}", projectile.style));
+                .auto_shrink([false; 2])
+                .max_width(360.0f32)
+                .show(ui, |ui| {
+                    ui.collapsing("Motion info", |ui| {
+                        let mut position: String =
+                            format!("Current Position: {}, {}", self.position.x, self.position.y);
+                        ui.label(position);
+                        let mut velocity: String =
+                            format!("Current Velocity: {}, {}", self.velocity.x, self.velocity.y);
+                        ui.label(velocity);
+                        let mut acceleration: String = format!(
+                            "Current Acceleration: {}, {}",
+                            self.acceleration.x, self.acceleration.y
+                        );
+                        ui.label(acceleration);
+                    });
+                    ui.collapsing("Action info", |ui| {
+                        let mut first_active_frame: String = format!(
+                            "First active frame: {}",
+                            self.action_info.first_active_frame + 1
+                        );
+                        if self.action_info.first_active_frame == -1 {
+                            first_active_frame = "First active frame: N/A".to_owned();
+                        }
+                        ui.label(first_active_frame);
+                        let mut recovery_frame: String =
+                            format!("Recovery frame: {}", self.action_info.recovery_frame + 1);
+                        if self.action_info.recovery_frame == -1 {
+                            recovery_frame = "Recovery frame: N/A".to_owned();
+                        }
+                        ui.label(recovery_frame);
+                        ui.label(format!(
+                            "First actionable frame: {}",
+                            self.action_info.end_frame + 1
+                        ));
+                        let mut loop_count: String =
+                            format!("Loop count: {}", self.action_info.loop_count);
+                        if self.action_info.loop_count == -1 {
+                            loop_count = "Loop count: infinite".to_owned();
+                        }
+                        ui.label(loop_count);
+                    });
+
+                    if !self.projectile_keys.is_empty() {
+                        let mut clicked = false;
+                        let mut action_id = -1;
+                        ui.collapsing("Projectile info", |ui| {
+                            for (index, projectile) in self.projectile_keys.iter().enumerate() {
+                                ui.collapsing(format!("Projectile #{}", index), |ui| {
+                                    ui.horizontal(|ui| {
+                                        ui.label(format!("Style #{}", projectile.style));
+                                    });
+                                    ui.horizontal(|ui| {
+                                        if ui
+                                            .link(format!(
+                                                "Action {}",
+                                                self.get_action_name(projectile.action_id)
+                                            ))
+                                            .clicked()
+                                        {
+                                            clicked = true;
+                                            action_id = projectile.action_id.clone();
+                                        }
+                                    });
+                                    ui.horizontal(|ui| {
+                                        ui.label(format!(
+                                            "Position offset: X {}, Y {}, Z {}",
+                                            projectile.pos_offset.x,
+                                            projectile.pos_offset.y,
+                                            projectile.pos_offset.z
+                                        ));
+                                    });
                                 });
-                                ui.horizontal(|ui| {
-                                    if ui.link(format!("Action {}", self.get_action_name(projectile.action_id))).clicked(){
-                                        clicked = true;
-                                        action_id = projectile.action_id.clone();
-                                    }
-                                });
-                                ui.horizontal(|ui| {
-                                    ui.label(format!("Position offset: X {}, Y {}, Z {}", projectile.pos_offset.x, projectile.pos_offset.y, projectile.pos_offset.z));
-                                });
+                            }
+                            if clicked {
+                                self.update_action(action_id);
+                            }
+                        });
+                    }
+
+                    ui.collapsing("Cancel list", |ui| {
+                        let mut clicked = false;
+                        let mut action_id = -1;
+                        for trigger in &self.triggers {
+                            ui.horizontal(|ui| {
+                                if ui
+                                    .link(format!(
+                                        "Action {}",
+                                        self.get_action_name(trigger.action)
+                                    ))
+                                    .clicked()
+                                {
+                                    clicked = true;
+                                    action_id = trigger.action.clone();
+                                };
+                                let mut cancel_flags: String = "".to_owned();
+                                if trigger.condition_flag & 0b1 > 0 {
+                                    cancel_flags.push_str("Hit | ")
+                                }
+                                if trigger.condition_flag & 0b10 > 0 {
+                                    cancel_flags.push_str("Guard | ")
+                                }
+                                if trigger.condition_flag & 0b100 > 0 {
+                                    cancel_flags.push_str("Whiff | ")
+                                }
+                                if trigger.condition_flag & 0b010000000000 > 0 {
+                                    cancel_flags.push_str("Counter | ")
+                                }
+                                if trigger.condition_flag & 0b0001000000000000 > 0 {
+                                    cancel_flags.push_str("Parry | ")
+                                }
+                                if trigger.condition_flag & 0b0010000000000000 > 0 {
+                                    cancel_flags.push_str("Just | ")
+                                }
+                                if trigger.condition_flag & 0b100000000000 > 0 {
+                                    cancel_flags.push_str("Strike | ")
+                                }
+                                if trigger.condition_flag & 0b1000 > 0 {
+                                    cancel_flags.push_str("Armor | ")
+                                }
+                                if trigger.condition_flag & 0b00010000 > 0 {
+                                    cancel_flags.push_str("Jump | ")
+                                }
+                                if trigger.condition_flag & 0b00100000 > 0 {
+                                    cancel_flags.push_str("SuperJump | ")
+                                }
+                                if trigger.condition_flag & 0b10000000 > 0 {
+                                    cancel_flags.push_str("Fly | ")
+                                }
+                                if trigger.condition_flag & 0b000100000000 > 0 {
+                                    cancel_flags.push_str("WallBk | ")
+                                }
+                                if trigger.condition_flag & 0b01000000000000000000 > 0 {
+                                    cancel_flags.push_str("VJump | ")
+                                }
+                                if trigger.condition_flag & 0b10000000000000000000 > 0 {
+                                    cancel_flags.push_str("FJump | ")
+                                }
+                                if trigger.condition_flag & 0b000100000000000000000000 > 0 {
+                                    cancel_flags.push_str("BJump | ")
+                                }
+                                if trigger.condition_flag & 0b001000000000000000000000 > 0 {
+                                    cancel_flags.push_str("Throw | ")
+                                }
+                                if trigger.condition_flag & 0b0100000000000000 > 0 {
+                                    cancel_flags.push_str("Normal | ")
+                                }
+                                if trigger.condition_flag & 0b1000000000000000 > 0 {
+                                    cancel_flags.push_str("Easy | ")
+                                }
+                                if trigger.condition_flag & 0b00010000000000000000 > 0 {
+                                    cancel_flags.push_str("Extra | ")
+                                }
+                                if trigger.condition_flag & 0b01000000 > 0 {
+                                    cancel_flags.push_str("Defer | ")
+                                }
+                                if trigger.condition_flag & 0b00100000000000000000 > 0 {
+                                    cancel_flags.push_str("Inhibit | ")
+                                }
+                                if trigger.condition_flag & 0b010000000000000000000000 > 0 {
+                                    cancel_flags.push_str("Terminator | ")
+                                }
+                                if cancel_flags.len() > 3 {
+                                    cancel_flags =
+                                        cancel_flags[0..cancel_flags.len() - 3].to_owned();
+                                }
+                                ui.label(format!("Cancel flags: {}", cancel_flags));
                             });
                         }
                         if clicked {
                             self.update_action(action_id);
                         }
                     });
-                }
-                
-                ui.collapsing("Cancel list", |ui| {
-                    let mut clicked = false;
-                    let mut action_id = -1;
-                    for trigger in &self.triggers {
-                        ui.horizontal(|ui| {
-                            if ui.link(format!("Action {}", self.get_action_name(trigger.action))).clicked()
-                            {
-                                clicked = true;
-                                action_id = trigger.action.clone();
-                            };
-                            let mut cancel_flags: String = "".to_owned();
-                            if trigger.condition_flag & 0b1 > 0 {
-                                cancel_flags.push_str("Hit | ")
-                            }
-                            if trigger.condition_flag & 0b10 > 0 {
-                                cancel_flags.push_str("Guard | ")
-                            }
-                            if trigger.condition_flag & 0b100 > 0 {
-                                cancel_flags.push_str("Whiff | ")
-                            }
-                            if trigger.condition_flag & 0b010000000000 > 0 {
-                                cancel_flags.push_str("Counter | ")
-                            }
-                            if trigger.condition_flag & 0b0001000000000000 > 0 {
-                                cancel_flags.push_str("Parry | ")
-                            }
-                            if trigger.condition_flag & 0b0010000000000000 > 0 {
-                                cancel_flags.push_str("Just | ")
-                            }
-                            if trigger.condition_flag & 0b100000000000 > 0 {
-                                cancel_flags.push_str("Strike | ")
-                            }
-                            if trigger.condition_flag & 0b1000 > 0 {
-                                cancel_flags.push_str("Armor | ")
-                            }
-                            if trigger.condition_flag & 0b00010000 > 0 {
-                                cancel_flags.push_str("Jump | ")
-                            }
-                            if trigger.condition_flag & 0b00100000 > 0 {
-                                cancel_flags.push_str("SuperJump | ")
-                            }
-                            if trigger.condition_flag & 0b10000000 > 0 {
-                                cancel_flags.push_str("Fly | ")
-                            }
-                            if trigger.condition_flag & 0b000100000000 > 0 {
-                                cancel_flags.push_str("WallBk | ")
-                            }
-                            if trigger.condition_flag & 0b01000000000000000000 > 0 {
-                                cancel_flags.push_str("VJump | ")
-                            }
-                            if trigger.condition_flag & 0b10000000000000000000 > 0 {
-                                cancel_flags.push_str("FJump | ")
-                            }
-                            if trigger.condition_flag & 0b000100000000000000000000 > 0 {
-                                cancel_flags.push_str("BJump | ")
-                            }
-                            if trigger.condition_flag & 0b001000000000000000000000 > 0 {
-                                cancel_flags.push_str("Throw | ")
-                            }
-                            if trigger.condition_flag & 0b0100000000000000 > 0 {
-                                cancel_flags.push_str("Normal | ")
-                            }
-                            if trigger.condition_flag & 0b1000000000000000 > 0 {
-                                cancel_flags.push_str("Easy | ")
-                            }
-                            if trigger.condition_flag & 0b00010000000000000000 > 0 {
-                                cancel_flags.push_str("Extra | ")
-                            }
-                            if trigger.condition_flag & 0b01000000 > 0 {
-                                cancel_flags.push_str("Defer | ")
-                            }
-                            if trigger.condition_flag & 0b00100000000000000000 > 0 {
-                                cancel_flags.push_str("Inhibit | ")
-                            }
-                            if trigger.condition_flag & 0b010000000000000000000000 > 0 {
-                                cancel_flags.push_str("Terminator | ")
-                            }
-                            if cancel_flags.len() > 3 {
-                                cancel_flags = cancel_flags[0..cancel_flags.len() - 3].to_owned();
-                            }
-                            ui.label(format!("Cancel flags: {}", cancel_flags));
-                        });
-                    }
-                    if clicked {
-                        self.update_action(action_id);
-                    }
                 });
-            });
 
             ui.horizontal(|ui| {
                 ui.label("");
             })
-                .response
+            .response
         } else {
-            ui.horizontal(|ui| {
-            })
-                .response
+            ui.horizontal(|ui| {}).response
         }
     }
 
@@ -641,7 +665,9 @@ impl Viewer {
             action_label = "Select an action".to_owned();
         }
         ui.label("Filter by name");
-        let textedit_response = ui.add(egui::TextEdit::singleline(&mut self.action_name_filter_string));
+        let textedit_response = ui.add(egui::TextEdit::singleline(
+            &mut self.action_name_filter_string,
+        ));
         self.action_name_filter_string = self.action_name_filter_string.to_lowercase();
         ComboBox::from_label("Action List")
             .selected_text(action_label)
@@ -651,8 +677,13 @@ impl Viewer {
                     for (index, action) in fchar.action_list.iter().enumerate() {
                         let action_index = &action.info.action_data.action_id;
                         let filter_string = &self.action_name_filter_string;
-                        if filter_string.is_empty()|| self.get_action_name(*action_index).to_lowercase().contains(filter_string){
-                            if ui 
+                        if filter_string.is_empty()
+                            || self
+                                .get_action_name(*action_index)
+                                .to_lowercase()
+                                .contains(filter_string)
+                        {
+                            if ui
                                 .selectable_label(
                                     true,
                                     format!(
@@ -681,10 +712,10 @@ impl Viewer {
             if self.action_index_string != "" {
                 let action_string = self.action_index_string.parse::<i32>();
                 match action_string {
-                    Ok(parsed_action_index)=>{
+                    Ok(parsed_action_index) => {
                         self.update_action(parsed_action_index);
-                    },
-                    Err(_)=>(),
+                    }
+                    Err(_) => (),
                 }
             }
             self.action_index_string = "".to_string();
@@ -719,10 +750,10 @@ impl Viewer {
                             &mut self.current_frame,
                             1..=action.info.action_data.frames as usize,
                         )
-                            .clamp_to_range(true)
-                            .smart_aim(true)
-                            .orientation(egui::SliderOrientation::Horizontal)
-                            .text("Current Frame"),
+                        .clamp_to_range(true)
+                        .smart_aim(true)
+                        .orientation(egui::SliderOrientation::Horizontal)
+                        .text("Current Frame"),
                     );
                     if ui.input(|i| i.key_pressed(egui::Key::ArrowLeft)) {
                         self.current_frame -= 1;
@@ -749,25 +780,26 @@ impl Viewer {
             ui.horizontal(|ui| {
                 ui.label("");
             })
-                .response
+            .response
         } else {
             ui.horizontal(|ui| {
                 ui.label("Select an action from the action list!");
             })
-                .response
+            .response
         }
     }
 
-    fn get_projectile_keys(&mut self)
-    {
+    fn get_projectile_keys(&mut self) {
         self.projectile_keys.clear();
         match &self.asset {
             Some(fchar) => {
                 let action = &fchar.action_list[self.selected_index.clone() as usize];
                 for object in &action.objects {
                     for (index, object_index) in object.action.object_table.iter().enumerate() {
-                        if object.info.object_data.key_data[index].key_start_frame <= self.current_frame as i32 - 1
-                            && object.info.object_data.key_data[index].key_end_frame > self.current_frame as i32 - 1
+                        if object.info.object_data.key_data[index].key_start_frame
+                            <= self.current_frame as i32 - 1
+                            && object.info.object_data.key_data[index].key_end_frame
+                                > self.current_frame as i32 - 1
                         {
                             let data = &object.action.data[object_index.clone() as usize - 1];
                             match data.name.as_str() {
@@ -782,8 +814,7 @@ impl Viewer {
                                     }
                                     let style_value = &data.fields[1].value;
                                     let mut style = 0i32;
-                                    match style_value
-                                    {
+                                    match style_value {
                                         RSZValue::Int32(int) => {
                                             style = int.clone();
                                         }
@@ -791,17 +822,19 @@ impl Viewer {
                                     }
                                     let action_value = &data.fields[2].value;
                                     let mut action_id = 0i32;
-                                    match action_value
-                                    {
+                                    match action_value {
                                         RSZValue::Int32(int) => {
                                             action_id = int.clone();
                                         }
                                         _ => (),
                                     }
                                     let pos_value = &data.fields[4].value;
-                                    let mut pos_offset: Float3 = Float3 { x: 0f32, y: 0f32, z: 0f32 };
-                                    match pos_value
-                                    {
+                                    let mut pos_offset: Float3 = Float3 {
+                                        x: 0f32,
+                                        y: 0f32,
+                                        z: 0f32,
+                                    };
+                                    match pos_value {
                                         RSZValue::Float3(float3) => {
                                             pos_offset.x = float3.x.clone();
                                             pos_offset.y = float3.y.clone();
@@ -810,9 +843,12 @@ impl Viewer {
                                         _ => (),
                                     }
                                     let scatter_value = &data.fields[5].value;
-                                    let mut scatter_offset: Float3 = Float3 { x: 0f32, y: 0f32, z: 0f32 };
-                                    match scatter_value
-                                    {
+                                    let mut scatter_offset: Float3 = Float3 {
+                                        x: 0f32,
+                                        y: 0f32,
+                                        z: 0f32,
+                                    };
+                                    match scatter_value {
                                         RSZValue::Float3(float3) => {
                                             scatter_offset.x = float3.x.clone();
                                             scatter_offset.y = float3.y.clone();
@@ -821,9 +857,12 @@ impl Viewer {
                                         _ => (),
                                     }
                                     let rotate_value = &data.fields[6].value;
-                                    let mut rotate_offset: Float3 = Float3 { x: 0f32, y: 0f32, z: 0f32 };
-                                    match rotate_value
-                                    {
+                                    let mut rotate_offset: Float3 = Float3 {
+                                        x: 0f32,
+                                        y: 0f32,
+                                        z: 0f32,
+                                    };
+                                    match rotate_value {
                                         RSZValue::Float3(float3) => {
                                             rotate_offset.x = float3.x.clone();
                                             rotate_offset.y = float3.y.clone();
@@ -847,7 +886,7 @@ impl Viewer {
                                         }
                                         _ => (),
                                     }
-                                    
+
                                     self.projectile_keys.push(ProjectileKey {
                                         operation,
                                         style,
@@ -859,13 +898,13 @@ impl Viewer {
                                         spawn_flag,
                                     })
                                 }
-                                _ => ()
+                                _ => (),
                             }
                         }
                     }
                 }
             }
-            None => ()
+            None => (),
         }
     }
 
@@ -1086,9 +1125,8 @@ impl Viewer {
         if self.root_motion.y < 0f32 {
             self.root_motion.y = 0f32;
         }
-        
-        if frame == self.action_info.end_frame
-        {
+
+        if frame == self.action_info.end_frame {
             self.velocity.x = 0f32;
             self.velocity.y = 0f32;
             self.velocity.z = 0f32;
